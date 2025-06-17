@@ -1,23 +1,67 @@
 # PySpark Data Quality Framework
 
-A comprehensive, production-ready data quality framework for processing Parquet files using Apache Spark. This framework implements 10 essential data quality checks with batch processing capabilities, error handling, and configurable checkpointing.
+A comprehensive, production-ready data quality framework for processing Parquet files using Apache Spark. This framework implements advanced data quality checks with batch processing capabilities, error handling, and configurable checkpointing.
 
 ## Features
 
-### 🔍 Comprehensive Data Quality Checks
+### 🔍 Advanced Data Quality Processors
 
-The framework implements 10 key data quality validation steps:
+The framework implements sophisticated data quality processors:
 
-1. **F1: Check for Missing Values** - Identify and handle null/missing values
-2. **F2: Ensure Mandatory Fields Populated** - Validate required fields are present
-3. **F3: Standardize Numerical Data Formats** - Normalize numeric data formats
-4. **F4: Identify & Remove Outdated/Irrelevant Data** - Filter based on date ranges and business rules
-5. **F5: Validate Data Against External Sources** - Cross-reference with lookup tables
-6. **F6: Confirm Data Uniqueness** - Remove duplicates and enforce uniqueness constraints
-7. **F7: Match Data Entries to Correct Categories** - Standardize categorical data
-8. **F8: Validate Accuracy of Text Fields** - Apply regex patterns and text validation rules
-9. **F9: Ensure Proper Data Relationships** - Validate foreign keys and conditional relationships
-10. **F10: Implement Data Entry Rules** - Apply business rules and value constraints
+1. **BoilerplateCleanerProcessor**
+   - TF-IDF based duplicate detection
+   - Context-aware cleaning methods
+   - Smart header/footer removal
+   - Template matching capabilities
+   - Configurable similarity thresholds
+
+2. **HadoopCleanerProcessor**
+   - Metadata extraction capabilities
+   - Improved tag cleaning using predefined patterns
+   - Structured data preservation
+   - Custom pattern support
+   - Metadata transformation options
+
+3. **HTMLCleanerProcessor**
+   - Custom tag replacements
+   - Attribute preservation
+   - Enhanced entity handling
+   - Whitelist-based tag filtering
+   - Custom transformation support
+
+4. **Core Data Quality Processors**
+   - MissingValuesProcessor: Advanced null/missing value handling
+   - MandatoryFieldsProcessor: Required field validation
+   - NumericalFormatsProcessor: Data type standardization
+   - OutdatedDataProcessor: Temporal data filtering
+   - ExternalValidationProcessor: Cross-reference validation
+   - UniquenessProcessor: Duplicate detection and removal
+   - CategoriesProcessor: Categorical data standardization
+   - TextValidationProcessor: Pattern-based text validation
+   - RelationshipsProcessor: Data relationship validation
+   - EntryRulesProcessor: Business rule enforcement
+
+### 📊 Metrics & Monitoring
+
+The framework includes comprehensive metrics collection:
+
+1. **Performance Metrics**
+   - Processing times per operation
+   - Memory usage tracking
+   - Record counts
+   - Validation statistics
+
+2. **Resource Monitoring**
+   - Real-time memory usage (RSS, VMS, Shared)
+   - CPU utilization
+   - I/O operations
+   - Network usage
+
+3. **Validation Metrics**
+   - Data quality scores
+   - Error rates
+   - Processing success rates
+   - Batch statistics
 
 ### 🚀 Performance & Scalability
 
@@ -41,6 +85,46 @@ The framework implements 10 key data quality validation steps:
 - **Monitoring**: Processing statistics and performance metrics
 - **Recovery**: Checkpoint-based recovery mechanisms
 
+## Project Structure
+
+```
+├── src/
+│   ├── data_quality/
+│   │   ├── processors/         # Data quality processors
+│   │   │   ├── boilerplate_cleaner.py
+│   │   │   ├── hadoop_cleaner.py
+│   │   │   ├── html_cleaner.py
+│   │   │   ├── missing_values.py
+│   │   │   ├── mandatory_fields.py
+│   │   │   ├── numerical_formats.py
+│   │   │   ├── outdated_data.py
+│   │   │   ├── external_validation.py
+│   │   │   ├── uniqueness.py
+│   │   │   ├── categories.py
+│   │   │   ├── text_validation.py
+│   │   │   ├── relationships.py
+│   │   │   ├── entry_rules.py
+│   │   │   └── xlsx_processor.py
+│   │   ├── core/              # Core framework components
+│   │   │   ├── framework.py   # Main framework implementation
+│   │   │   └── exceptions.py  # Custom exceptions
+│   │   ├── utils/             # Utility functions
+│   │   │   ├── metrics.py     # Metrics collection
+│   │   │   └── config_validator.py
+│   │   ├── config/            # Configuration templates
+│   │   └── tests/             # Test suite
+│   ├── logging_manager.py     # Logging configuration
+│   └── logging_config.py      # Logging settings
+├── main.py                    # Main entry point
+├── data_quality_framework.py  # Core framework implementation
+├── batch_processor.py         # Batch processing logic
+├── config_manager.py          # Configuration management
+├── cli_processor.py           # Command-line interface
+├── example_usage.py           # Usage examples
+├── setup.py                   # Package setup
+└── requirements.txt           # Dependencies
+```
+
 ## Installation
 
 ### Prerequisites
@@ -59,7 +143,7 @@ pip install -r requirements.txt
 
 ```bash
 # Install on all cluster nodes
-pip install pyspark pandas pyarrow PyYAML
+pip install pyspark pandas pyarrow PyYAML scikit-learn beautifulsoup4 psutil
 ```
 
 ## Quick Start
@@ -114,74 +198,66 @@ python main.py /path/to/small_dataset.parquet \
   "output_dir": "/data/cleaned",
   "batch_size": 1000000,
   
-  "missing_value_strategy": "fill",
-  "missing_threshold": 30.0,
-  "critical_columns": ["order_id", "customer_id", "product_id"],
-  "fill_values": {
-    "discount": 0.0,
-    "shipping_cost": 0.0
+  "processors": {
+    "boilerplate_cleaner": {
+      "use_tfidf": true,
+      "similarity_threshold": 0.8,
+      "template_matching": true,
+      "context_aware_cleaning": true
+    },
+    "hadoop_cleaner": {
+      "extract_metadata": true,
+      "preserve_structured_data": true,
+      "metadata_fields": ["job_id", "task_id"]
+    },
+    "html_cleaner": {
+      "whitelist_tags": ["p", "br", "strong"],
+      "preserve_attributes": true,
+      "custom_entities": {
+        "&nbsp;": " ",
+        "&amp;": "&"
+      }
+    },
+    "missing_values": {
+      "strategy": "fill",
+      "threshold": 30.0,
+      "critical_columns": ["id", "timestamp"],
+      "fill_values": {
+        "numeric": 0,
+        "string": "N/A",
+        "date": "1970-01-01"
+      }
+    },
+    "mandatory_fields": {
+      "required_columns": ["id", "name", "created_at"],
+      "error_action": "drop"
+    },
+    "numerical_formats": {
+      "decimal_places": 2,
+      "rounding_mode": "half_up",
+      "handle_currency": true
+    }
   },
   
-  "mandatory_fields": ["order_id", "customer_id", "order_date"],
-  
-  "numerical_columns": ["price", "quantity", "discount"],
-  "decimal_places": 2,
-  
-  "unique_constraints": [
-    {
-      "columns": ["order_id"],
-      "action": "drop_duplicates"
-    }
-  ],
-  
-  "text_validation_rules": {
-    "email": {
-      "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
-      "min_length": 5,
-      "max_length": 100
-    }
+  "metrics": {
+    "enabled": true,
+    "collect_memory_usage": true,
+    "collect_processing_times": true,
+    "collect_validation_stats": true,
+    "output_format": "json",
+    "output_path": "/data/metrics"
   },
   
-  "entry_rules": [
-    {
-      "name": "price_validation",
-      "type": "range_check",
-      "column": "price",
-      "min_value": 0.01,
-      "max_value": 100000.0
-    }
-  ]
+  "spark_config": {
+    "adaptive_query_execution": true,
+    "vectorized_parquet_reading": true,
+    "arrow_optimization": true,
+    "memory_fraction": 0.8,
+    "storage_fraction": 0.3,
+    "shuffle_partitions": 200
+  }
 }
 ```
-
-### Configuration Sections
-
-#### General Settings
-- `checkpoint_dir`: Directory for storing checkpoints
-- `output_dir`: Directory for processed data
-- `batch_size`: Number of records per batch
-
-#### F1: Missing Values
-- `missing_value_strategy`: 'drop' or 'fill'
-- `missing_threshold`: Percentage threshold for dropping columns
-- `critical_columns`: Columns that cannot have missing values
-- `fill_values`: Default values for filling missing data
-
-#### F2: Mandatory Fields
-- `mandatory_fields`: List of required columns
-
-#### F3: Numerical Standardization
-- `numerical_columns`: Columns to standardize
-- `decimal_places`: Number of decimal places
-
-#### F6: Uniqueness
-- `unique_constraints`: Duplicate removal rules
-
-#### F8: Text Validation
-- `text_validation_rules`: Regex patterns and length constraints
-
-#### F10: Entry Rules
-- `entry_rules`: Business rules and value constraints
 
 ## Advanced Usage
 
@@ -208,7 +284,12 @@ results = dq_framework.process_parquet_files([
     '/path/to/data2.parquet'
 ])
 
-print(f"Processed {results['validation_summary']['total_files_processed']} files")
+# Access metrics
+metrics = dq_framework.metrics.get_summary()
+print(f"Processing time: {metrics['total_processing_time']} seconds")
+print(f"Peak memory usage: {metrics['peak_memory_usage']} bytes")
+print(f"Total records processed: {metrics['total_records_processed']}")
+
 spark.stop()
 ```
 
@@ -245,142 +326,6 @@ results = processor.process_large_dataset(
 )
 ```
 
-### Environment-Specific Configuration
-
-```python
-from config_manager import ConfigurationManager
-
-# Create base configuration
-base_config = ConfigurationManager('base_config.json')
-
-# Create environment-specific versions
-dev_config = base_config.create_environment_specific_config('dev')
-prod_config = base_config.create_environment_specific_config('prod')
-
-# Save environment configs
-dev_config.save_config('dev_config.json')
-prod_config.save_config('prod_config.json')
-```
-
-## Command Line Interface
-
-### Basic Commands
-
-```bash
-# Show help
-python main.py --help
-
-# Process with specific log level
-python main.py data.parquet --log-level DEBUG
-
-# Custom log file
-python main.py data.parquet --log-file my_process.log
-
-# Specify output directory
-python main.py data.parquet --output-dir /path/to/output
-```
-
-### Batch Processing Options
-
-```bash
-# Enable batch processing (default)
-python main.py data.parquet --batch-processing
-
-# Disable batch processing
-python main.py data.parquet --no-batch-processing
-
-# Analysis only (no processing)
-python main.py data.parquet --analyze-only
-```
-
-## Architecture
-
-### Framework Components
-
-```
-┌─────────────────────────────────────────┐
-│                 main.py                 │
-│         (CLI & Orchestration)           │
-└─────────────────┬───────────────────────┘
-                  │
-┌─────────────────▼───────────────────────┐
-│         DataQualityFramework            │
-│     (Core Processing Engine)            │
-│                                         │
-│  F1: Missing Values                     │
-│  F2: Mandatory Fields                   │
-│  F3: Numerical Standardization          │
-│  F4: Outdated Data Removal              │
-│  F5: External Source Validation         │
-│  F6: Data Uniqueness                    │
-│  F7: Category Matching                  │
-│  F8: Text Field Validation              │
-│  F9: Data Relationships                 │
-│  F10: Entry Rules                       │
-└─────────────────┬───────────────────────┘
-                  │
-┌─────────────────▼───────────────────────┐
-│           BatchProcessor                │
-│    (Large Dataset Handling)             │
-│                                         │
-│  • Batch Creation                       │
-│  • Concurrent Processing                │
-│  • Memory Optimization                  │
-│  • Checkpointing                        │
-│  • Result Merging                       │
-└─────────────────┬───────────────────────┘
-                  │
-┌─────────────────▼───────────────────────┐
-│        ConfigurationManager             │
-│      (Configuration Handling)           │
-│                                         │
-│  • JSON/YAML Loading                    │
-│  • Validation                           │
-│  • Environment-Specific Configs         │
-│  • Domain Templates                     │
-└─────────────────────────────────────────┘
-```
-
-### Data Flow
-
-```
-Input Parquet Files
-        │
-        ▼
-   Validation & Loading
-        │
-        ▼
-   Batch Creation (if enabled)
-        │
-        ▼
-   Data Quality Pipeline
-        │
-   ┌────▼────┐
-   │   F1    │ Check Missing Values
-   └────┬────┘
-   ┌────▼────┐
-   │   F2    │ Mandatory Fields
-   └────┬────┘
-   ┌────▼────┐
-   │   F3    │ Numerical Standardization
-   └────┬────┘
-        │
-       ...
-        │
-   ┌────▼────┐
-   │   F10   │ Entry Rules
-   └────┬────┘
-        │
-        ▼
-   Checkpointing & Saving
-        │
-        ▼
-   Results Aggregation
-        │
-        ▼
-   Output Parquet Files + Statistics
-```
-
 ## Performance Tuning
 
 ### Spark Configuration
@@ -392,6 +337,15 @@ spark.conf.set("spark.sql.adaptive.enabled", "true")
 spark.conf.set("spark.sql.adaptive.coalescePartitions.enabled", "true")
 spark.conf.set("spark.sql.parquet.enableVectorizedReader", "true")
 spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
+spark.conf.set("spark.memory.fraction", "0.8")
+spark.conf.set("spark.memory.storageFraction", "0.3")
+spark.conf.set("spark.shuffle.file.buffer", "1m")
+spark.conf.set("spark.file.transferTo", "true")
+spark.conf.set("spark.sql.parquet.compression.codec", "snappy")
+spark.conf.set("spark.shuffle.compress", "true")
+spark.conf.set("spark.sql.optimizer.dynamicPartitionPruning.enabled", "true")
+spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "10m")
+spark.conf.set("spark.sql.shuffle.partitions", "200")
 ```
 
 ### Batch Size Recommendations
@@ -402,12 +356,6 @@ spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
 | 100K - 1M rows | 100K | 2 |
 | 1M - 10M rows | 500K | 3 |
 | > 10M rows | 1M | 4 |
-
-### Memory Optimization
-
-- Enable memory optimization for datasets > 1GB
-- Use checkpoints for long-running processes
-- Configure appropriate partition sizes
 
 ## Error Handling
 
@@ -425,45 +373,6 @@ spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
 - Checkpoint-based recovery for batch processing
 - Detailed error logging and reporting
 - Graceful degradation for non-critical errors
-
-## Monitoring & Observability
-
-### Metrics Collected
-
-- Processing throughput (records/second)
-- Data quality improvement percentage
-- Memory usage patterns
-- Processing time per validation step
-- Error rates and types
-
-### Logging Levels
-
-- **DEBUG**: Detailed processing information
-- **INFO**: General processing progress
-- **WARNING**: Non-critical issues
-- **ERROR**: Processing failures
-- **CRITICAL**: System-level failures
-
-### Output Reports
-
-The framework generates comprehensive reports:
-
-```json
-{
-  "summary": {
-    "total_files": 5,
-    "successful_files": 4,
-    "failed_files": 1,
-    "success_rate": 80.0,
-    "total_processing_time_minutes": 12.5
-  },
-  "validation_summary": {
-    "f1_missing_values": {"rows_dropped": 150},
-    "f2_mandatory_fields": {"rows_removed": 25},
-    "f6_uniqueness": {"total_duplicates_removed": 1200}
-  }
-}
-```
 
 ## Contributing
 
