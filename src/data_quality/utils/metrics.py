@@ -40,9 +40,9 @@ class MetricsCollector:
             self.metrics['memory_usage'][operation].append({
                 'rss': memory_info.rss,
                 'vms': memory_info.vms,
-                'shared': memory_info.shared,
-                'text': memory_info.text,
-                'data': memory_info.data
+                'shared': getattr(memory_info, 'shared', 0),
+                'text': getattr(memory_info, 'text', 0),
+                'data': getattr(memory_info, 'data', 0)
             })
     
     def record_record_count(self, operation: str, count: int):

@@ -94,7 +94,14 @@ class LoggingManager:
     def _get_io_counters(self) -> Dict[str, int]:
         """Safely get IO counters with error handling"""
         try:
-            counters = self.process.io_counters()
+            counters = getattr(self.process, 'io_counters', lambda: None)()
+            if counters is None:
+                return {
+                    'read_count': 0,
+                    'write_count': 0,
+                    'read_bytes': 0,
+                    'write_bytes': 0
+                }
             return {
                 'read_count': counters.read_count,
                 'write_count': counters.write_count,
@@ -276,6 +283,10 @@ class LoggingManager:
             }
         }
         self.logger.error(f"ERROR: {json.dumps(error_info)}", exc_info=True)
+        
+    def log_accuracy_metrics(self, metrics: Dict[str, Any]):
+        """Log accuracy metrics for an operation"""
+        self.logger.info(f"ACCURACY_METRICS: {json.dumps(metrics)}")
         
     def cleanup(self):
         """Cleanup resources and generate final report"""

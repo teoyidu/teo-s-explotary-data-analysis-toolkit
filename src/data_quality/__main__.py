@@ -11,9 +11,9 @@ from pyspark.sql import SparkSession
 from .core import DataQualityFramework
 from .utils.config_validator import ConfigurationValidator
 
-def setup_logging(log_level: str = 'INFO', log_file: str = None):
+def setup_logging(log_level: str = 'INFO', log_file: str | None = None):
     """Set up logging configuration"""
-    handlers = [logging.StreamHandler()]
+    handlers: List[logging.Handler] = [logging.StreamHandler()]
     if log_file:
         handlers.append(logging.FileHandler(log_file))
     
