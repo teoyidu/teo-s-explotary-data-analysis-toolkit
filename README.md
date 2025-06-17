@@ -1,4 +1,4 @@
-# PySpark Data Quality Framework
+# Teo's EDA Emporium
 
 A comprehensive, production-ready data quality framework for processing Parquet files using Apache Spark. This framework implements advanced data quality checks with batch processing capabilities, error handling, and configurable checkpointing.
 
