@@ -24,8 +24,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def create_sample_data(spark: SparkSession, num_records: int = 100000) -> None:
-    """Create sample e-commerce data for demonstration"""
+def create_sample_data(spark: SparkSession, num_records: int = 100000) -> str:
+    """Create sample e-commerce data for demonstration
+    
+    Args:
+        spark: SparkSession instance
+        num_records: Number of records to generate
+        
+    Returns:
+        str: Path to the generated parquet file
+    """
     
     logger.info(f"Creating sample data with {num_records} records...")
     
@@ -185,12 +193,19 @@ def demonstrate_framework_usage():
         
         # Define processing function
         def demo_processing_function(batch_df):
-            """Demonstration processing function"""
+            """Demonstration processing function
+            
+            Args:
+                batch_df: Input DataFrame to process
+                
+            Returns:
+                DataFrame: Processed DataFrame
+            """
             # Apply some of the data quality checks
-            cleaned_df, validation_stats = dq_framework._apply_data_quality_pipeline(
+            cleaned_df, _ = dq_framework._apply_data_quality_pipeline(
                 batch_df, "demo_batch"
             )
-            return cleaned_df, validation_stats
+            return cleaned_df
         
         batch_output_path = f"{temp_dir}/batch_output"
         batch_results = batch_processor.process_large_dataset(
