@@ -3,7 +3,7 @@ Processor for cleaning HTML tags from text data
 """
 
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Set
 import pandas as pd
 from bs4 import BeautifulSoup
 import re
@@ -20,6 +20,9 @@ class HTMLCleanerProcessor:
         """
         self.config = config
         self.html_columns = config.get('html_columns', {})
+        
+        # Default whitelist of tags to preserve
+        self.default_whitelist = {'p', 'br', 'strong', 'em', 'b', 'i', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'}
         
     def process(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -53,18 +56,58 @@ class HTMLCleanerProcessor:
                 # Parse HTML
                 soup = BeautifulSoup(text, 'html.parser')
                 
-                # Get text content
-                cleaned_text = soup.get_text(separator=' ', strip=True)
+                # Get whitelist of tags to preserve
+                whitelist = set(settings.get('whitelist_tags', self.default_whitelist))
+                
+                # Handle custom tag replacements
+                custom_replacements = settings.get('custom_tag_replacements', {})
+                for tag, replacement in custom_replacements.items():
+                    for element in soup.find_all(tag):
+                        element.replace_with(replacement)
+                
+                # Remove non-whitelisted tags but keep their content
+                for tag in soup.find_all():
+                    if tag.name not in whitelist:
+                        tag.unwrap()
+                
+                # Handle specific attributes if needed
+                if settings.get('preserve_attributes', False):
+                    for tag in soup.find_all():
+                        if tag.name in whitelist:
+                            # Keep specified attributes
+                            allowed_attrs = settings.get('allowed_attributes', {}).get(tag.name, [])
+                            attrs_to_remove = [attr for attr in tag.attrs if attr not in allowed_attrs]
+                            for attr in attrs_to_remove:
+                                del tag[attr]
+                
+                # Get text content with preserved formatting
+                cleaned_text = str(soup)
+                
+                # Handle specific HTML entities if needed
+                if settings.get('handle_entities', True):
+                    entity_mapping = settings.get('custom_entities', {
+                        '&nbsp;': ' ',
+                        '&amp;': '&',
+                        '&lt;': '<',
+                        '&gt;': '>',
+                        '&quot;': '"',
+                        '&apos;': "'"
+                    })
+                    for entity, replacement in entity_mapping.items():
+                        cleaned_text = cleaned_text.replace(entity, replacement)
                 
                 # Remove extra whitespace
                 cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
                 
-                # Handle specific HTML entities if needed
-                if settings.get('handle_entities', True):
-                    cleaned_text = cleaned_text.replace('&nbsp;', ' ')
-                    cleaned_text = cleaned_text.replace('&amp;', '&')
-                    cleaned_text = cleaned_text.replace('&lt;', '<')
-                    cleaned_text = cleaned_text.replace('&gt;', '>')
+                # Apply custom transformations if specified
+                if 'custom_transformations' in settings:
+                    for transform in settings['custom_transformations']:
+                        if transform['type'] == 'replace':
+                            cleaned_text = re.sub(transform['pattern'], transform['replacement'], cleaned_text)
+                        elif transform['type'] == 'extract':
+                            match = re.search(transform['pattern'], cleaned_text)
+                            if match:
+                                cleaned_text = match.group(1)
                 
                 return cleaned_text
             except Exception as e:

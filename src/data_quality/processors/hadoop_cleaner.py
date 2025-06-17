@@ -3,9 +3,11 @@ Processor for cleaning Hadoop-specific tags and metadata from text data
 """
 
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Set, Optional
 import pandas as pd
 import re
+from datetime import datetime
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +44,18 @@ class HadoopCleanerProcessor:
             r'<counter>.*?</counter>',  # Counter tags
         ]
         
+        # Common Hadoop metadata patterns
+        self.metadata_patterns = {
+            'job_id': r'job_\d+_\d+',
+            'task_id': r'task_\d+_\d+_\d+',
+            'attempt_id': r'attempt_\d+_\d+_\d+_\d+',
+            'container_id': r'container_\d+_\d+_\d+_\d+',
+            'application_id': r'application_\d+_\d+',
+            'executor_id': r'executor_\d+',
+            'stage_id': r'stage_\d+',
+            'partition_id': r'partition_\d+'
+        }
+        
     def process(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Process the DataFrame to clean Hadoop tags
@@ -65,6 +79,10 @@ class HadoopCleanerProcessor:
             # Apply Hadoop tag cleaning
             df = self._clean_hadoop_tags(df, column, settings)
             
+            # Extract metadata if requested
+            if settings.get('extract_metadata', False):
+                df = self._extract_metadata(df, column, settings)
+            
         return df
         
     def _clean_hadoop_tags(self, df: pd.DataFrame, column: str, settings: Dict) -> pd.DataFrame:
@@ -73,20 +91,31 @@ class HadoopCleanerProcessor:
             try:
                 cleaned_text = text
                 
+                # Get custom patterns if specified
+                patterns = settings.get('custom_patterns', []) + self.hadoop_patterns
+                
                 # Remove Hadoop XML tags
-                for pattern in self.hadoop_patterns:
+                for pattern in patterns:
                     cleaned_text = re.sub(pattern, '', cleaned_text, flags=re.DOTALL)
                 
                 # Remove Hadoop-specific metadata if specified
                 if settings.get('remove_metadata', True):
-                    # Remove job IDs
-                    cleaned_text = re.sub(r'job_\d+_\d+', '', cleaned_text)
-                    # Remove task IDs
-                    cleaned_text = re.sub(r'task_\d+_\d+_\d+', '', cleaned_text)
-                    # Remove attempt IDs
-                    cleaned_text = re.sub(r'attempt_\d+_\d+_\d+_\d+', '', cleaned_text)
-                    # Remove container IDs
-                    cleaned_text = re.sub(r'container_\d+_\d+_\d+_\d+', '', cleaned_text)
+                    for pattern in self.metadata_patterns.values():
+                        cleaned_text = re.sub(pattern, '', cleaned_text)
+                
+                # Preserve structured data if specified
+                if settings.get('preserve_structured_data', False):
+                    # Try to parse and preserve JSON/XML structures
+                    try:
+                        # Check if it's JSON
+                        if cleaned_text.strip().startswith('{') or cleaned_text.strip().startswith('['):
+                            data = json.loads(cleaned_text)
+                            # Keep only specified fields
+                            if 'preserve_fields' in settings:
+                                data = {k: v for k, v in data.items() if k in settings['preserve_fields']}
+                            cleaned_text = json.dumps(data)
+                    except json.JSONDecodeError:
+                        pass
                 
                 # Remove extra whitespace
                 cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
@@ -99,4 +128,31 @@ class HadoopCleanerProcessor:
         # Apply cleaning to the column
         df[column] = df[column].apply(clean_text)
         
-        return df 
+        return df
+        
+    def _extract_metadata(self, df: pd.DataFrame, column: str, settings: Dict) -> pd.DataFrame:
+        """Extract Hadoop metadata into separate columns"""
+        try:
+            # Get metadata fields to extract
+            metadata_fields = settings.get('metadata_fields', list(self.metadata_patterns.keys()))
+            
+            for field in metadata_fields:
+                if field in self.metadata_patterns:
+                    pattern = self.metadata_patterns[field]
+                    new_column = f"{column}_{field}"
+                    
+                    # Extract metadata using regex
+                    df[new_column] = df[column].str.extract(pattern, expand=False)
+                    
+                    # Apply transformations if specified
+                    if 'metadata_transformations' in settings and field in settings['metadata_transformations']:
+                        transform = settings['metadata_transformations'][field]
+                        if transform.get('type') == 'datetime':
+                            df[new_column] = pd.to_datetime(df[new_column], format=transform.get('format'))
+                        elif transform.get('type') == 'numeric':
+                            df[new_column] = pd.to_numeric(df[new_column], errors='coerce')
+            
+            return df
+        except Exception as e:
+            logger.warning(f"Error extracting metadata from column {column}: {str(e)}")
+            return df 
