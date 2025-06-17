@@ -46,22 +46,40 @@ The framework implements sophisticated data quality processors:
 The framework includes comprehensive metrics collection:
 
 1. **Performance Metrics**
-   - Processing times per operation
-   - Memory usage tracking
-   - Record counts
-   - Validation statistics
+   - Detailed operation timing and statistics
+   - Memory usage tracking (RSS, VMS, Shared)
+   - CPU utilization monitoring
+   - I/O operation counters
+   - Garbage collection statistics
+   - Operation success/failure rates
+   - Historical metrics tracking
 
 2. **Resource Monitoring**
-   - Real-time memory usage (RSS, VMS, Shared)
-   - CPU utilization
-   - I/O operations
-   - Network usage
+   - Real-time memory usage tracking
+   - CPU utilization monitoring
+   - I/O operations tracking
+   - Thread count monitoring
+   - Open file handles tracking
+   - Network connection monitoring
+   - System resource peak tracking
 
 3. **Validation Metrics**
    - Data quality scores
    - Error rates
    - Processing success rates
    - Batch statistics
+   - Operation duration statistics
+   - Memory usage patterns
+   - CPU usage patterns
+
+4. **Advanced Logging**
+   - Structured JSON logging
+   - Detailed error context
+   - System state snapshots
+   - Performance summaries
+   - Batch processing metrics
+   - Resource utilization history
+   - Operation success/failure tracking
 
 ### 🚀 Performance & Scalability
 
@@ -143,7 +161,8 @@ pip install -r requirements.txt
 
 ```bash
 # Install on all cluster nodes
-pip install pyspark pandas pyarrow PyYAML scikit-learn beautifulsoup4 psutil
+pip install pyspark pandas pyarrow PyYAML scikit-learn beautifulsoup4 psutil \
+    fastparquet python-snappy brotli lz4 zstandard matplotlib seaborn plotly
 ```
 
 ## Quick Start
@@ -329,6 +348,30 @@ results = processor.process_large_dataset(
 ## Performance Tuning
 
 ### Spark Configuration
+
+The framework automatically sets optimal Spark configurations and provides detailed performance monitoring:
+
+```python
+# Performance monitoring setup
+logging_manager = LoggingManager(
+    log_dir="logs",
+    metrics_history_size=1000  # Store last 1000 metrics
+)
+
+# Get performance summary
+performance_summary = logging_manager.get_performance_summary()
+print(f"Operation stats: {performance_summary['operation_stats']}")
+print(f"System stats: {performance_summary['system_stats']}")
+
+# Monitor specific operation
+logging_manager.start_operation("data_processing")
+# ... your processing code ...
+logging_manager.end_operation(
+    "data_processing",
+    success=True,
+    additional_metrics={"records_processed": 1000}
+)
+```
 
 The framework automatically sets optimal Spark configurations:
 

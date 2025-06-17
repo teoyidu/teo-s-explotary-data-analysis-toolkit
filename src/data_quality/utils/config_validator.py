@@ -3,6 +3,7 @@ Configuration validation utility for the Data Quality Framework
 """
 
 import jsonschema
+from jsonschema import validate, ValidationError
 from typing import Dict, List, Tuple, Any
 
 class ConfigurationValidator:
@@ -190,9 +191,9 @@ class ConfigurationValidator:
             Tuple of (is_valid, list_of_errors)
         """
         try:
-            jsonschema.validate(instance=config, schema=cls.CONFIG_SCHEMA)
+            validate(instance=config, schema=cls.CONFIG_SCHEMA)
             return True, []
-        except jsonschema.exceptions.ValidationError as e:
+        except ValidationError as e:
             return False, [str(e)]
         except Exception as e:
             return False, [f"Unexpected error during validation: {str(e)}"] 

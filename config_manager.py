@@ -12,7 +12,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 import jsonschema
-from jsonschema import validate
+from jsonschema import validate, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -256,20 +256,31 @@ class DataQualityConfig:
     boilerplate_columns: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
 class ConfigurationManager:
-    """Manages configuration for the Data Quality Framework"""
+    """Manager for handling data quality configuration"""
     
     def __init__(self, config_path: Optional[str] = None):
-        """
-        Initialize Configuration Manager
-        
-        Args:
-            config_path: Path to configuration file (JSON or YAML)
-        """
         self.config_path = config_path
         self.config = DataQualityConfig()
-        
         if config_path:
             self.load_config(config_path)
+            
+    def merge_config(self, new_config: Dict[str, Any]) -> None:
+        """
+        Merge new configuration with existing configuration
+        
+        Args:
+            new_config: New configuration to merge
+        """
+        current_config = self.to_dict()
+        merged_config = {**current_config, **new_config}
+        
+        # Validate merged configuration
+        is_valid, errors = self.validate_config(merged_config)
+        if not is_valid:
+            raise ValueError(f"Invalid merged configuration: {', '.join(errors)}")
+            
+        # Update configuration
+        self._update_config_from_dict(merged_config)
     
     def load_config(self, config_path: str) -> None:
         """
@@ -308,15 +319,15 @@ class ConfigurationManager:
         Validate configuration against schema
         
         Args:
-            config: Configuration dictionary to validate
+            config: Configuration to validate
             
         Returns:
-            Tuple of (is_valid, list_of_errors)
+            Tuple of (is_valid, list of errors)
         """
         try:
             validate(instance=config, schema=CONFIG_SCHEMA)
             return True, []
-        except jsonschema.exceptions.ValidationError as e:
+        except ValidationError as e:
             return False, [str(e)]
     
     def _update_config_from_dict(self, config_data: Dict[str, Any]) -> None:

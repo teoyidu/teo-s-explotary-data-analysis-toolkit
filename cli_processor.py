@@ -5,7 +5,7 @@ from textual.screen import Screen
 from rich.console import Console
 from rich.panel import Panel
 import time
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, TypeVar, Generic, cast
 from data_quality_framework import DataQualityFramework
 from pyspark.sql import SparkSession
 
@@ -28,22 +28,22 @@ LOGO = """
 """
 
 class ProcessingScreen(Screen):
-    """Screen for processing data with progress bars"""
+    """Screen for displaying processing progress"""
     
     def __init__(self, selected_methods: List[str], spark_session: SparkSession, config: Dict[str, Any]):
         super().__init__()
         self.selected_methods = selected_methods
         self.spark_session = spark_session
         self.config = config
-        self.current_method = 0
-        self.progress_bars = {}
         
     def compose(self) -> ComposeResult:
         yield Header()
         with Center():
             with Middle():
-                for i, method in enumerate(self.selected_methods):
-                    yield ProgressBar(id=f"progress_{i}_{method}")
+                yield Label("Processing data...", id="status_label")
+                with Vertical(id="progress_container"):
+                    for i, method in enumerate(self.selected_methods):
+                        yield ProgressBar(id=f"progress_{i}_{method}")
         yield Footer()
         
     def on_mount(self) -> None:
@@ -52,6 +52,9 @@ class ProcessingScreen(Screen):
         
     def process_data(self) -> None:
         """Process data using selected methods"""
+        if not self.spark_session or not self.config:
+            raise ValueError("Spark session and config must be provided")
+            
         framework = DataQualityFramework(self.spark_session, self.config)
         
         for i, method in enumerate(self.selected_methods):
@@ -105,12 +108,16 @@ class MainMenu(Screen):
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses"""
+        if not event.button or not event.button.id:
+            return
+            
         if event.button.id == "start_button":
             if self.selected_methods:
+                app = cast(DataProcessorApp, self.app)
                 self.app.push_screen(ProcessingScreen(
                     selected_methods=list(self.selected_methods),
-                    spark_session=self.app.spark_session,
-                    config=self.app.config
+                    spark_session=app.spark_session,
+                    config=app.config
                 ))
         elif event.button.id.startswith("btn_"):
             method = event.button.id[4:]  # Remove "btn_" prefix
@@ -121,7 +128,9 @@ class MainMenu(Screen):
                 self.selected_methods.add(method)
                 event.button.add_class("selected")
 
-class DataProcessorApp(App):
+T = TypeVar('T')
+
+class DataProcessorApp(App[None]):
     """Main application class"""
     
     CSS = """
@@ -187,8 +196,16 @@ class DataProcessorApp(App):
     
     def __init__(self, spark_session: SparkSession, config: Dict[str, Any]):
         super().__init__()
-        self.spark_session = spark_session
-        self.config = config
+        self._spark_session = spark_session
+        self._config = config
+        
+    @property
+    def spark_session(self) -> SparkSession:
+        return self._spark_session
+    
+    @property
+    def config(self) -> Dict[str, Any]:
+        return self._config
         
     def on_mount(self) -> None:
         """Display logo and show main menu on startup"""
