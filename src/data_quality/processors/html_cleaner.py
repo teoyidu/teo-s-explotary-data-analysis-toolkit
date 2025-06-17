@@ -3,9 +3,10 @@ Processor for cleaning HTML tags from text data
 """
 
 import logging
-from typing import List, Dict, Any, Set
+from typing import List, Dict, Any, Set, Optional, Union, cast
 import pandas as pd
 from bs4 import BeautifulSoup
+from bs4.element import Tag, NavigableString
 import re
 
 logger = logging.getLogger(__name__)
@@ -49,9 +50,9 @@ class HTMLCleanerProcessor:
             
         return df
         
-    def _clean_html(self, df: pd.DataFrame, column: str, settings: Dict) -> pd.DataFrame:
+    def _clean_html(self, df: pd.DataFrame, column: str, settings: Dict[str, Any]) -> pd.DataFrame:
         """Clean HTML tags from text data"""
-        def clean_text(text):
+        def clean_text(text: str) -> str:
             try:
                 # Parse HTML
                 soup = BeautifulSoup(text, 'html.parser')
@@ -63,17 +64,18 @@ class HTMLCleanerProcessor:
                 custom_replacements = settings.get('custom_tag_replacements', {})
                 for tag, replacement in custom_replacements.items():
                     for element in soup.find_all(tag):
-                        element.replace_with(replacement)
+                        if isinstance(element, Tag):
+                            element.replace_with(replacement)
                 
                 # Remove non-whitelisted tags but keep their content
                 for tag in soup.find_all():
-                    if tag.name not in whitelist:
+                    if isinstance(tag, Tag) and tag.name not in whitelist:
                         tag.unwrap()
                 
                 # Handle specific attributes if needed
                 if settings.get('preserve_attributes', False):
                     for tag in soup.find_all():
-                        if tag.name in whitelist:
+                        if isinstance(tag, Tag) and tag.name in whitelist:
                             # Keep specified attributes
                             allowed_attrs = settings.get('allowed_attributes', {}).get(tag.name, [])
                             attrs_to_remove = [attr for attr in tag.attrs if attr not in allowed_attrs]
