@@ -286,53 +286,82 @@ class ConfigurationValidator:
             return False, [f"Unexpected error during validation: {str(e)}"]
 
 class MetricsCollector:
-    """Collects and manages performance metrics for the data quality framework"""
+    """Collects and manages metrics for the data quality framework"""
     
     def __init__(self):
-        self.metrics = {
-            'processing_times': {},
-            'memory_usage': {},
-            'record_counts': {},
-            'validation_stats': {}
-        }
-        self._lock = threading.Lock()
+        self.metrics = {}
+        self.start_times = {}
+        self.memory_threshold = 0.85  # 85% memory usage threshold
+        self.last_cleanup_time = time.time()
+        self.cleanup_interval = 300  # 5 minutes
     
     def start_timer(self, operation: str) -> float:
         """Start timing an operation"""
-        return time.time()
+        start_time = time.time()
+        self.start_times[operation] = start_time
+        return start_time
     
     def end_timer(self, operation: str, start_time: float):
-        """End timing an operation and record the duration"""
-        duration = time.time() - start_time
-        with self._lock:
-            if operation not in self.metrics['processing_times']:
-                self.metrics['processing_times'][operation] = []
-            self.metrics['processing_times'][operation].append(duration)
+        """End timing an operation and record duration"""
+        if operation in self.start_times:
+            duration = time.time() - start_time
+            if 'durations' not in self.metrics:
+                self.metrics['durations'] = {}
+            self.metrics['durations'][operation] = duration
+            del self.start_times[operation]
     
     def record_memory_usage(self, operation: str):
         """Record memory usage for an operation"""
-        memory_info = psutil.Process().memory_info()
-        with self._lock:
-            if operation not in self.metrics['memory_usage']:
-                self.metrics['memory_usage'][operation] = []
-            self.metrics['memory_usage'][operation].append({
-                'rss': memory_info.rss,
-                'vms': memory_info.vms
-            })
+        process = psutil.Process()
+        memory_info = process.memory_info()
+        
+        if 'memory_usage' not in self.metrics:
+            self.metrics['memory_usage'] = {}
+        
+        self.metrics['memory_usage'][operation] = {
+            'rss': memory_info.rss,  # Resident Set Size
+            'vms': memory_info.vms,  # Virtual Memory Size
+            'percent': process.memory_percent()
+        }
+        
+        # Check if memory pressure is high
+        if process.memory_percent() > self.memory_threshold * 100:
+            self._handle_memory_pressure()
+    
+    def _handle_memory_pressure(self):
+        """Handle high memory pressure situations"""
+        current_time = time.time()
+        
+        # Only perform cleanup if enough time has passed since last cleanup
+        if current_time - self.last_cleanup_time > self.cleanup_interval:
+            logger.warning("High memory pressure detected, performing cleanup...")
+            
+            # Force garbage collection
+            import gc
+            gc.collect()
+            
+            # Clear any cached data
+            if 'cached_data' in self.metrics:
+                del self.metrics['cached_data']
+            
+            # Update last cleanup time
+            self.last_cleanup_time = current_time
+            
+            # Log memory status after cleanup
+            process = psutil.Process()
+            logger.info(f"Memory usage after cleanup: {process.memory_percent():.1f}%")
     
     def record_record_count(self, operation: str, count: int):
-        """Record the number of records processed in an operation"""
-        with self._lock:
-            if operation not in self.metrics['record_counts']:
-                self.metrics['record_counts'][operation] = []
-            self.metrics['record_counts'][operation].append(count)
+        """Record the number of records processed"""
+        if 'record_counts' not in self.metrics:
+            self.metrics['record_counts'] = {}
+        self.metrics['record_counts'][operation] = count
     
     def record_validation_stats(self, operation: str, stats: Dict):
-        """Record validation statistics for an operation"""
-        with self._lock:
-            if operation not in self.metrics['validation_stats']:
-                self.metrics['validation_stats'][operation] = []
-            self.metrics['validation_stats'][operation].append(stats)
+        """Record validation statistics"""
+        if 'validation_stats' not in self.metrics:
+            self.metrics['validation_stats'] = {}
+        self.metrics['validation_stats'][operation] = stats
     
     def get_metrics(self) -> Dict:
         """Get all collected metrics"""
@@ -341,16 +370,17 @@ class MetricsCollector:
     def get_summary(self) -> Dict:
         """Get a summary of the metrics"""
         summary = {
-            'total_processing_time': sum(sum(times) for times in self.metrics['processing_times'].values()),
-            'average_processing_times': {
-                op: sum(times) / len(times) if times else 0
-                for op, times in self.metrics['processing_times'].items()
+            'total_duration': sum(self.metrics.get('durations', {}).values()),
+            'total_records': sum(self.metrics.get('record_counts', {}).values()),
+            'memory_usage': {
+                'current': psutil.Process().memory_percent(),
+                'peak': max(m['percent'] for m in self.metrics.get('memory_usage', {}).values())
             },
-            'peak_memory_usage': {
-                op: max(usage['rss'] for usage in usages) if usages else 0
-                for op, usages in self.metrics['memory_usage'].items()
-            },
-            'total_records_processed': sum(sum(counts) for counts in self.metrics['record_counts'].values())
+            'validation_summary': {
+                'total_validations': len(self.metrics.get('validation_stats', {})),
+                'failed_validations': sum(1 for stats in self.metrics.get('validation_stats', {}).values()
+                                       if stats.get('status') == 'failed')
+            }
         }
         return summary
 

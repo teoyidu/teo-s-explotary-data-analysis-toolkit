@@ -8,8 +8,13 @@ import argparse
 import logging
 import sys
 import time
+import os
 from typing import List, Dict, Any, Optional
 from pathlib import Path
+import psutil
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Import our custom modules
 from data_quality_framework import DataQualityFramework
@@ -48,8 +53,25 @@ def setup_logging(log_level: str = "INFO", log_file: str = "data_quality_pipelin
 
 
 def create_spark_session(app_name: str = "Data Quality Framework") -> SparkSession:
-    """Create optimized Spark session"""
+    """Create optimized Spark session with dynamic resource allocation
     
+    Args:
+        app_name: Name of the Spark application
+        
+    Returns:
+        Configured SparkSession
+    """
+    
+    # Get system resources
+    total_memory = psutil.virtual_memory().total
+    cpu_count = psutil.cpu_count()
+    
+    # Calculate optimal configurations
+    executor_memory = max(1, min(4, total_memory // (1024 * 1024 * 1024)))  # GB
+    executor_cores = max(1, min(4, cpu_count // 2))
+    shuffle_partitions = max(200, executor_cores * 10)
+    
+    # Build Spark session with dynamic configuration
     spark = SparkSession.builder \
         .appName(app_name) \
         .config("spark.sql.adaptive.enabled", "true") \
@@ -58,19 +80,41 @@ def create_spark_session(app_name: str = "Data Quality Framework") -> SparkSessi
         .config("spark.sql.parquet.enableVectorizedReader", "true") \
         .config("spark.sql.parquet.columnarReaderBatchSize", "4096") \
         .config("spark.sql.execution.arrow.pyspark.enabled", "true") \
-        .config("spark.sql.shuffle.partitions", "200") \
+        .config("spark.sql.shuffle.partitions", str(shuffle_partitions)) \
         .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
         .config("spark.sql.adaptive.advisoryPartitionSizeInBytes", "64MB") \
+        .config("spark.executor.memory", f"{executor_memory}g") \
+        .config("spark.executor.cores", str(executor_cores)) \
+        .config("spark.dynamicAllocation.enabled", "true") \
+        .config("spark.dynamicAllocation.minExecutors", "1") \
+        .config("spark.dynamicAllocation.maxExecutors", str(cpu_count)) \
+        .config("spark.dynamicAllocation.initialExecutors", str(executor_cores)) \
+        .config("spark.memory.fraction", "0.8") \
+        .config("spark.memory.storageFraction", "0.3") \
         .getOrCreate()
     
     # Set log level for Spark
     spark.sparkContext.setLogLevel("WARN")
     
+    logger.info(f"Created Spark session with {executor_cores} cores and {executor_memory}GB memory per executor")
+    
     return spark
 
 
 def validate_input_paths(input_paths: List[str]) -> List[str]:
-    """Validate that input paths exist and are accessible"""
+    """Validate that input paths exist and are accessible
+    
+    Args:
+        input_paths: List of paths to validate
+        
+    Returns:
+        List of valid paths
+        
+    Raises:
+        FileNotFoundError: If a local file doesn't exist
+        PermissionError: If a file exists but is not accessible
+        ValueError: If no valid paths are found
+    """
     
     valid_paths = []
     invalid_paths = []
@@ -80,20 +124,30 @@ def validate_input_paths(input_paths: List[str]) -> List[str]:
             # For local filesystem, check if path exists
             if path.startswith('file://') or not path.startswith(('s3://', 'hdfs://', 'gs://')):
                 local_path = path.replace('file://', '')
-                if Path(local_path).exists():
-                    valid_paths.append(path)
-                else:
-                    invalid_paths.append(path)
+                if not Path(local_path).exists():
+                    raise FileNotFoundError(f"File not found: {local_path}")
+                if not os.access(local_path, os.R_OK):
+                    raise PermissionError(f"No read permission for file: {local_path}")
+                valid_paths.append(path)
             else:
                 # For distributed filesystems, assume valid (Spark will handle errors)
                 valid_paths.append(path)
                 
+        except FileNotFoundError as e:
+            logger.error(f"File not found: {str(e)}")
+            invalid_paths.append(path)
+        except PermissionError as e:
+            logger.error(f"Permission error: {str(e)}")
+            invalid_paths.append(path)
         except Exception as e:
-            logging.warning(f"Could not validate path {path}: {str(e)}")
+            logger.error(f"Unexpected error validating path {path}: {str(e)}")
             invalid_paths.append(path)
     
     if invalid_paths:
-        logging.warning(f"Invalid paths found: {invalid_paths}")
+        logger.warning(f"Invalid paths found: {invalid_paths}")
+    
+    if not valid_paths:
+        raise ValueError("No valid input paths found")
     
     return valid_paths
 
