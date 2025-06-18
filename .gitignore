@@ -3,3 +3,4 @@ myduman.xlsx
 venv
 data_quality.log
 __pycache__/data_quality_framework.cpython-312.pyc
+__pycache__
