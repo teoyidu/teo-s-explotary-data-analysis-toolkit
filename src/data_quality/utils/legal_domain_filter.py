@@ -14,19 +14,9 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from functools import lru_cache
 import json
 
+from ..exceptions import LegalDomainError, ModelLoadError, InferenceError
+
 logger = logging.getLogger(__name__)
-
-class LegalDomainError(Exception):
-    """Base exception for legal domain filtering errors"""
-    pass
-
-class ModelLoadError(LegalDomainError):
-    """Exception raised when model fails to load"""
-    pass
-
-class InferenceError(LegalDomainError):
-    """Exception raised when model inference fails"""
-    pass
 
 class LegalDomainFilter:
     """Processor for filtering legal domain content using BERTurk-Legal model"""

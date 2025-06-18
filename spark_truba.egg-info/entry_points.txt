@@ -1,0 +1,2 @@
+[console_scripts]
+data-quality = data_quality.__main__:main

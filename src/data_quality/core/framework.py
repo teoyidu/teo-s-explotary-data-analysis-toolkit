@@ -28,6 +28,8 @@ from ..processors import (
 from ..processors.xlsx_processor import XLSXProcessor
 from ..utils.metrics import MetricsCollector
 from ..utils.config_validator import ConfigurationValidator
+from ..utils.legal_domain_filter import LegalDomainFilter
+from ..exceptions import ValidationError, ModelLoadError, InferenceError
 
 logger = logging.getLogger(__name__)
 
@@ -366,4 +368,55 @@ class DataQualityFramework:
             logger.info(f"Processing results saved to: {results_path}")
             
         except Exception as e:
-            logger.error(f"Error saving processing results: {str(e)}") 
+            logger.error(f"Error saving processing results: {str(e)}")
+    
+    def f11_filter_legal_domain(self, df: DataFrame) -> Tuple[DataFrame, Dict]:
+        """
+        Filter content based on legal domain using BERTurk-Legal model
+        
+        Args:
+            df (DataFrame): Input DataFrame
+            
+        Returns:
+            Tuple[DataFrame, Dict]: Processed DataFrame and statistics
+            
+        Raises:
+            ValidationError: If required configuration is missing
+            ProcessingError: If legal domain filtering fails
+        """
+        try:
+            # Get legal domain filtering configuration
+            legal_config = self.config.get('legal_domain_filtering', {})
+            if not legal_config.get('enabled', False):
+                logger.info("Legal domain filtering is disabled")
+                return df, {'status': 'disabled'}
+                
+            # Initialize legal domain filter with configuration
+            legal_filter = LegalDomainFilter(legal_config)
+            
+            # Process the data
+            processed_df, stats = legal_filter.process(df, legal_config['text_column'])
+            
+            # Update metrics
+            self.metrics.record_validation_stats("legal_domain_filtering", stats)
+            
+            # Log results
+            logger.info(
+                f"Legal domain filtering completed: {stats['legal_documents']} legal documents "
+                f"({stats['legal_percentage']:.2f}%) out of {stats['total_documents']} total documents"
+            )
+            
+            return processed_df, stats
+            
+        except ValidationError as e:
+            logger.error(f"Configuration error in legal domain filtering: {str(e)}")
+            raise
+        except ModelLoadError as e:
+            logger.error(f"Model loading error in legal domain filtering: {str(e)}")
+            raise ProcessingError(f"Failed to load legal domain model: {str(e)}")
+        except InferenceError as e:
+            logger.error(f"Inference error in legal domain filtering: {str(e)}")
+            raise ProcessingError(f"Legal domain model inference failed: {str(e)}")
+        except Exception as e:
+            logger.error(f"Unexpected error in legal domain filtering: {str(e)}")
+            raise ProcessingError(f"Legal domain filtering failed: {str(e)}") 

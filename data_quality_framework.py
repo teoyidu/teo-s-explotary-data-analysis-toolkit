@@ -270,6 +270,7 @@ class ConfigurationValidator:
             },
             "legal_domain_filtering": {
                 "type": "object",
+                "required": ["enabled", "threshold", "text_column"],
                 "properties": {
                     "enabled": {
                         "type": "boolean",
@@ -280,6 +281,32 @@ class ConfigurationValidator:
                         "minimum": 0,
                         "maximum": 1,
                         "description": "Probability threshold for legal domain classification"
+                    },
+                    "text_column": {
+                        "type": "string",
+                        "description": "Name of the column containing text to analyze"
+                    },
+                    "model_name": {
+                        "type": "string",
+                        "description": "Name of the model to use for legal domain classification",
+                        "default": "KocLab-Bilkent/BERTurk-Legal"
+                    },
+                    "cache_dir": {
+                        "type": "string",
+                        "description": "Directory to cache the model",
+                        "default": "./model_cache"
+                    },
+                    "batch_size": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "Batch size for processing",
+                        "default": 32
+                    },
+                    "device": {
+                        "type": "string",
+                        "enum": ["auto", "cpu", "cuda"],
+                        "description": "Device to use for inference",
+                        "default": "auto"
                     }
                 }
             }

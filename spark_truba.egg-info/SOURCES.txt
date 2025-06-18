@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+setup.py
+spark_truba.egg-info/PKG-INFO
+spark_truba.egg-info/SOURCES.txt
+spark_truba.egg-info/dependency_links.txt
+spark_truba.egg-info/entry_points.txt
+spark_truba.egg-info/requires.txt
+spark_truba.egg-info/top_level.txt
+tests/test_legal_domain_filter.py
