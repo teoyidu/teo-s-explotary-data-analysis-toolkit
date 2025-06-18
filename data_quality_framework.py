@@ -38,6 +38,7 @@ from pyspark.sql.types import (
     BooleanType, DateType, TimestampType, DecimalType
 )
 from pyspark.storagelevel import StorageLevel
+from src.legal_domain_filter import LegalDomainFilter
 
 # Configure logging
 logging.basicConfig(
@@ -260,6 +261,25 @@ class ConfigurationValidator:
                             "type": "string",
                             "enum": [">", "<", ">=", "<=", "==", "!="]
                         }
+                    }
+                }
+            },
+            "text_column": {
+                "type": "string",
+                "description": "Name of the column containing text to analyze for legal domain filtering"
+            },
+            "legal_domain_filtering": {
+                "type": "object",
+                "properties": {
+                    "enabled": {
+                        "type": "boolean",
+                        "description": "Whether to enable legal domain filtering"
+                    },
+                    "threshold": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1,
+                        "description": "Probability threshold for legal domain classification"
                     }
                 }
             }
@@ -646,6 +666,11 @@ class DataQualityFramework:
             logger.info("F10: Implementing data entry rules")
             current_df, stats = self.f10_implement_entry_rules(current_df)
             validation_stats['f10_entry_rules'] = stats
+            
+            # F11: Filter content based on legal domain using BERTurk-Legal model
+            logger.info("F11: Filtering content based on legal domain using BERTurk-Legal model")
+            current_df, stats = self.f11_filter_legal_domain(current_df)
+            validation_stats['f11_legal_domain_filtering'] = stats
             
             # Cache the final result for better performance
             current_df.cache()
@@ -1346,6 +1371,34 @@ class DataQualityFramework:
         
         return df_cleaned, stats
     
+    def f11_filter_legal_domain(self, df: DataFrame) -> Tuple[DataFrame, Dict]:
+        """
+        Filter content based on legal domain using BERTurk-Legal model
+        
+        Args:
+            df (DataFrame): Input DataFrame
+            
+        Returns:
+            Tuple[DataFrame, Dict]: Processed DataFrame and statistics
+        """
+        try:
+            legal_filter = LegalDomainFilter()
+            text_column = self.config.get("text_column", "text")  # Default to 'text' column
+            
+            if text_column not in df.columns:
+                raise ValidationError(f"Text column '{text_column}' not found in DataFrame")
+            
+            processed_df, stats = legal_filter.process(df, text_column)
+            
+            # Update metrics
+            self.metrics.record_validation_stats("legal_domain_filtering", stats)
+            
+            return processed_df, stats
+            
+        except Exception as e:
+            logger.error(f"Error in legal domain filtering: {str(e)}")
+            raise ProcessingError(f"Legal domain filtering failed: {str(e)}")
+    
     def _save_with_checkpoint(self, df: DataFrame, original_path: str, batch_index: int) -> str:
         """Save DataFrame with checkpoint and partitioning"""
         try:
@@ -1477,6 +1530,11 @@ def create_sample_config() -> Dict[str, Any]:
                 'clean_text': True,
                 'case_normalization': 'title'
             }
+        },
+        'text_column': 'text',
+        'legal_domain_filtering': {
+            'enabled': True,
+            'threshold': 0.8
         }
     }
 

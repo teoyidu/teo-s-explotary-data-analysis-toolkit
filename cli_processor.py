@@ -189,6 +189,8 @@ class ProcessingScreen(Screen):
         self.spark_session = spark_session
         self.config = config
         self.input_file = input_file
+        self.processing_complete = False
+        self.error_occurred = False
         
     def compose(self) -> ComposeResult:
         yield Header()
@@ -199,11 +201,17 @@ class ProcessingScreen(Screen):
                 with Vertical(id="progress_container"):
                     for i, method in enumerate(self.selected_methods):
                         yield ProgressBar(id=f"progress_{i}_{method}")
+                yield Button("Return to Main Menu", id="return_button", variant="primary", classes="hidden")
         yield Footer()
         
     def on_mount(self) -> None:
         """Start processing when screen is mounted"""
         self.process_data()
+        
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button presses"""
+        if event.button.id == "return_button":
+            self.app.pop_screen()
         
     def process_data(self) -> None:
         """Process data using selected methods"""
@@ -212,25 +220,75 @@ class ProcessingScreen(Screen):
             
         framework = DataQualityFramework(self.spark_session, self.config)
         
-        # Process the file based on its type
-        file_ext = Path(self.input_file).suffix.lower()
-        if file_ext in ['.xlsx', '.xls']:
-            results = framework.process_file(self.input_file)
-        else:  # parquet
-            results = framework.process_parquet_files([self.input_file])
-        
-        for i, method in enumerate(self.selected_methods):
-            progress_bar = self.query_one(f"#progress_{i}_{method}", ProgressBar)
-            progress_bar.update(total=100)
+        try:
+            # Process the file based on its type
+            file_ext = Path(self.input_file).suffix.lower()
+            if file_ext in ['.xlsx', '.xls']:
+                results = framework.process_file(self.input_file)
+            else:  # parquet
+                results = framework.process_parquet_files([self.input_file])
             
-            # Simulate processing with progress updates
-            for j in range(101):
-                time.sleep(0.05)  # Simulate work
-                progress_bar.update(progress=j)
+            # Map method names to processor names
+            processor_map = {
+                'f1_check_missing_values': 'missing_values',
+                'f2_ensure_mandatory_fields': 'mandatory_fields',
+                'f3_standardize_numerical_formats': 'numerical_formats',
+                'f4_remove_outdated_data': 'outdated_data',
+                'f5_validate_external_sources': 'external_validation',
+                'f6_confirm_uniqueness': 'uniqueness',
+                'f7_match_categories': 'categories',
+                'f8_validate_text_fields': 'text_validation',
+                'f9_ensure_relationships': 'relationships',
+                'f10_implement_entry_rules': 'entry_rules',
+                'f11_clean_html_tags': 'html_cleaning',
+                'f12_clean_hadoop_tags': 'hadoop_cleaning',
+                'f13_clean_boilerplate': 'boilerplate_cleaning'
+            }
+            
+            for i, method in enumerate(self.selected_methods):
+                progress_bar = self.query_one(f"#progress_{i}_{method}", ProgressBar)
+                progress_bar.update(total=100)
                 
-            # Call actual processing method
-            method_func = getattr(framework, method)
-            method_func()  # You'll need to pass appropriate parameters here
+                try:
+                    # Get the appropriate processor and process the data
+                    processor_name = processor_map.get(method)
+                    if processor_name and processor_name in framework.processors:
+                        processor = framework.processors[processor_name]
+                        
+                        # Update progress in chunks
+                        for progress in range(0, 101, 10):
+                            progress_bar.update(progress=progress)
+                            time.sleep(0.1)  # Small delay to show progress
+                        
+                        # Process the data
+                        if isinstance(results, dict) and results.get('status') == 'success':
+                            processor.process(results)
+                        else:
+                            raise ValueError("Invalid results format")
+                        
+                        # Complete the progress bar
+                        progress_bar.update(progress=100)
+                except Exception as e:
+                    self.error_occurred = True
+                    status_label = self.query_one("#status_label", Label)
+                    status_label.update(f"Error in {method}: {str(e)}")
+                    progress_bar.update(progress=0)
+                    return
+            
+            # Show completion message and return button
+            if not self.error_occurred:
+                status_label = self.query_one("#status_label", Label)
+                status_label.update("Processing complete!")
+                return_button = self.query_one("#return_button", Button)
+                return_button.remove_class("hidden")
+                self.processing_complete = True
+                
+        except Exception as e:
+            self.error_occurred = True
+            status_label = self.query_one("#status_label", Label)
+            status_label.update(f"Error: {str(e)}")
+            return_button = self.query_one("#return_button", Button)
+            return_button.remove_class("hidden")
 
 class DataProcessorApp(App[None]):
     """Main application class"""
@@ -329,11 +387,16 @@ class DataProcessorApp(App[None]):
 
 def main():
     """Main entry point"""
-    # Initialize Spark session with minimal configuration
+    # Initialize Spark session with safe configurations
     spark = SparkSession.builder \
         .appName("Teo's Data Processor") \
         .config("spark.driver.extraJavaOptions", "-Djava.security.manager=allow") \
         .config("spark.executor.extraJavaOptions", "-Djava.security.manager=allow") \
+        .config("spark.sql.execution.arrow.pyspark.enabled", "true") \
+        .config("spark.sql.parquet.enableVectorizedReader", "true") \
+        .config("spark.sql.adaptive.enabled", "true") \
+        .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
+        .config("spark.sql.optimizer.dynamicPartitionPruning.enabled", "true") \
         .getOrCreate()
         
     # Default configuration

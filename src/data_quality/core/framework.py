@@ -78,9 +78,6 @@ class DataQualityFramework:
         
         # Create directories if they don't exist
         self._create_directories()
-        
-        # Set Spark configurations for optimization
-        self._configure_spark()
     
     def _create_directories(self):
         """Create necessary directories for checkpoints and output"""
@@ -90,38 +87,6 @@ class DataQualityFramework:
             logger.info(f"Created directories: {self.checkpoint_dir}, {self.output_dir}")
         except Exception as e:
             logger.warning(f"Could not create local directories: {e}")
-    
-    def _configure_spark(self):
-        """Configure Spark session for optimal performance"""
-        # Enable adaptive query execution
-        self.spark.conf.set("spark.sql.adaptive.enabled", "true")
-        self.spark.conf.set("spark.sql.adaptive.coalescePartitions.enabled", "true")
-        
-        # Enable vectorized parquet reading
-        self.spark.conf.set("spark.sql.parquet.enableVectorizedReader", "true")
-        self.spark.conf.set("spark.sql.parquet.columnarReaderBatchSize", "4096")
-        
-        # Enable Arrow optimization
-        self.spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
-        
-        # Memory and shuffle optimizations
-        self.spark.conf.set("spark.memory.fraction", "0.8")
-        self.spark.conf.set("spark.memory.storageFraction", "0.3")
-        self.spark.conf.set("spark.shuffle.file.buffer", "1m")
-        self.spark.conf.set("spark.file.transferTo", "true")
-        
-        # Compression settings
-        self.spark.conf.set("spark.sql.parquet.compression.codec", "snappy")
-        self.spark.conf.set("spark.shuffle.compress", "true")
-        
-        # Dynamic partition pruning
-        self.spark.conf.set("spark.sql.optimizer.dynamicPartitionPruning.enabled", "true")
-        
-        # Join optimizations
-        self.spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "10m")
-        self.spark.conf.set("spark.sql.shuffle.partitions", "200")
-        
-        logger.info("Spark session configured with performance optimizations")
     
     def process_file(self, file_path: str) -> Dict:
         """
