@@ -2,7 +2,7 @@
 Setup script for the Data Quality Framework package
 """
 
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages  # type: ignore
 
 setup(
     name="data-quality-framework",

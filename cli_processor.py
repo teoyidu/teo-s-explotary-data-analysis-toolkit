@@ -1,13 +1,16 @@
 from textual.app import App, ComposeResult
-from textual.containers import Center, Middle, Vertical
-from textual.widgets import Button, ProgressBar, Select, Header, Footer, Label, ListView, ListItem, DataTable
-from textual.screen import Screen
+from textual.containers import Center, Middle, Vertical, Horizontal
+from textual.widgets import Button, ProgressBar, Select, Header, Footer, Label, ListView, ListItem, DataTable, Input, DirectoryTree
+from textual.screen import Screen, ModalScreen
+from textual.message import Message
 from rich.console import Console
 from rich.panel import Panel
 import time
-from typing import List, Dict, Any, Optional, TypeVar, Generic, cast
-from data_quality_framework import DataQualityFramework
+from typing import List, Dict, Any, Optional, TypeVar, Generic, cast, TYPE_CHECKING, Protocol
+from src.data_quality.core.framework import DataQualityFramework
 from pyspark.sql import SparkSession
+import os
+from pathlib import Path
 
 # ASCII Art Logo
 LOGO = """
@@ -27,48 +30,94 @@ LOGO = """
                                                                                                                                           
 """
 
-class ProcessingScreen(Screen):
-    """Screen for displaying processing progress"""
+class DismissedEvent(Protocol):
+    """Protocol for screen dismissed events"""
+    screen: Screen
+    value: Any
+
+class FileBrowserDialog(ModalScreen[str]):
+    """A modal dialog for browsing and selecting files"""
     
-    def __init__(self, selected_methods: List[str], spark_session: SparkSession, config: Dict[str, Any]):
+    def __init__(self, start_path: str = str(Path.home())):
         super().__init__()
-        self.selected_methods = selected_methods
-        self.spark_session = spark_session
-        self.config = config
+        self.start_path = start_path
+        self.selected_path = None
         
     def compose(self) -> ComposeResult:
         yield Header()
         with Center():
             with Middle():
-                yield Label("Processing data...", id="status_label")
-                with Vertical(id="progress_container"):
-                    for i, method in enumerate(self.selected_methods):
-                        yield ProgressBar(id=f"progress_{i}_{method}")
+                yield Label("Select a file:", id="browser_label")
+                yield DirectoryTree(self.start_path, id="file_tree")
+                with Horizontal():
+                    yield Button("Select", id="select_button", variant="primary")
+                    yield Button("Cancel", id="cancel_button")
         yield Footer()
+    
+    def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
+        """Handle file selection"""
+        self.selected_path = str(event.path)
+        self.dismiss(self.selected_path)
+    
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button presses"""
+        if event.button.id == "select_button":
+            if self.selected_path:
+                self.dismiss(self.selected_path)
+        elif event.button.id == "cancel_button":
+            self.dismiss(None)
+
+class FileSelectionScreen(Screen):
+    """Screen for selecting input files"""
+    
+    def __init__(self):
+        super().__init__()
+        self.selected_file = None
         
-    def on_mount(self) -> None:
-        """Start processing when screen is mounted"""
-        self.process_data()
-        
-    def process_data(self) -> None:
-        """Process data using selected methods"""
-        if not self.spark_session or not self.config:
-            raise ValueError("Spark session and config must be provided")
+    def compose(self) -> ComposeResult:
+        yield Header()
+        with Center():
+            with Middle():
+                yield Label("Enter the path to your XLSX or Parquet file:", id="file_label")
+                yield Input(placeholder="Enter file path...", id="file_input")
+                yield Button("Browse...", id="browse_button")
+                yield Button("Continue", id="continue_button", variant="primary")
+        yield Footer()
+    
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button presses"""
+        if not event.button or not event.button.id:
+            return
             
-        framework = DataQualityFramework(self.spark_session, self.config)
-        
-        for i, method in enumerate(self.selected_methods):
-            progress_bar = self.query_one(f"#progress_{i}_{method}", ProgressBar)
-            progress_bar.update(total=100)
+        if event.button.id == "browse_button":
+            # Show file browser dialog
+            self.app.push_screen(FileBrowserDialog())
+        elif event.button.id == "continue_button":
+            file_input = self.query_one("#file_input", Input)
+            file_path = file_input.value.strip()
             
-            # Simulate processing with progress updates
-            for j in range(101):
-                time.sleep(0.05)  # Simulate work
-                progress_bar.update(progress=j)
+            if not file_path:
+                self.notify("Please enter a file path", severity="error")
+                return
                 
-            # Call actual processing method
-            method_func = getattr(framework, method)
-            method_func()  # You'll need to pass appropriate parameters here
+            if not os.path.exists(file_path):
+                self.notify("File does not exist", severity="error")
+                return
+                
+            file_ext = Path(file_path).suffix.lower()
+            if file_ext not in ['.xlsx', '.xls', '.parquet']:
+                self.notify("Unsupported file type. Please select an XLSX or Parquet file", severity="error")
+                return
+                
+            self.selected_file = file_path
+            app = cast(DataProcessorApp, self.app)
+            self.app.push_screen(MainMenu(selected_file=file_path))
+    
+    def on_screen_dismissed(self, event: Message) -> None:  # type: ignore
+        """Handle file browser dialog dismissal"""
+        if isinstance(event.screen, FileBrowserDialog) and event.value:  # type: ignore
+            file_input = self.query_one("#file_input", Input)
+            file_input.value = event.value  # type: ignore
 
 class MainMenu(Screen):
     """Main menu screen for selecting processing methods"""
@@ -89,14 +138,16 @@ class MainMenu(Screen):
         "f13_clean_boilerplate"
     ]
     
-    def __init__(self):
+    def __init__(self, selected_file: str):
         super().__init__()
         self.selected_methods = set()
+        self.selected_file = selected_file
     
     def compose(self) -> ComposeResult:
         yield Header()
         with Center():
             with Middle():
+                yield Label(f"Selected file: {self.selected_file}", id="file_label")
                 yield Label("Select processing methods (click to select/deselect):", id="select_label")
                 with Vertical(id="methods_container"):
                     for method in self.METHODS:
@@ -117,7 +168,8 @@ class MainMenu(Screen):
                 self.app.push_screen(ProcessingScreen(
                     selected_methods=list(self.selected_methods),
                     spark_session=app.spark_session,
-                    config=app.config
+                    config=app.config,
+                    input_file=self.selected_file
                 ))
         elif event.button.id.startswith("btn_"):
             method = event.button.id[4:]  # Remove "btn_" prefix
@@ -128,7 +180,57 @@ class MainMenu(Screen):
                 self.selected_methods.add(method)
                 event.button.add_class("selected")
 
-T = TypeVar('T')
+class ProcessingScreen(Screen):
+    """Screen for displaying processing progress"""
+    
+    def __init__(self, selected_methods: List[str], spark_session: SparkSession, config: Dict[str, Any], input_file: str):
+        super().__init__()
+        self.selected_methods = selected_methods
+        self.spark_session = spark_session
+        self.config = config
+        self.input_file = input_file
+        
+    def compose(self) -> ComposeResult:
+        yield Header()
+        with Center():
+            with Middle():
+                yield Label(f"Processing file: {self.input_file}", id="file_label")
+                yield Label("Processing data...", id="status_label")
+                with Vertical(id="progress_container"):
+                    for i, method in enumerate(self.selected_methods):
+                        yield ProgressBar(id=f"progress_{i}_{method}")
+        yield Footer()
+        
+    def on_mount(self) -> None:
+        """Start processing when screen is mounted"""
+        self.process_data()
+        
+    def process_data(self) -> None:
+        """Process data using selected methods"""
+        if not self.spark_session or not self.config:
+            raise ValueError("Spark session and config must be provided")
+            
+        framework = DataQualityFramework(self.spark_session, self.config)
+        
+        # Process the file based on its type
+        file_ext = Path(self.input_file).suffix.lower()
+        if file_ext in ['.xlsx', '.xls']:
+            results = framework.process_file(self.input_file)
+        else:  # parquet
+            results = framework.process_parquet_files([self.input_file])
+        
+        for i, method in enumerate(self.selected_methods):
+            progress_bar = self.query_one(f"#progress_{i}_{method}", ProgressBar)
+            progress_bar.update(total=100)
+            
+            # Simulate processing with progress updates
+            for j in range(101):
+                time.sleep(0.05)  # Simulate work
+                progress_bar.update(progress=j)
+                
+            # Call actual processing method
+            method_func = getattr(framework, method)
+            method_func()  # You'll need to pass appropriate parameters here
 
 class DataProcessorApp(App[None]):
     """Main application class"""
@@ -155,6 +257,18 @@ class DataProcessorApp(App[None]):
     Label {
         color: white;
         padding: 1;
+    }
+    
+    Input {
+        width: 100%;
+        margin: 1;
+        background: #3f3f3f;
+        color: white;
+        border: solid #4f4f4f;
+    }
+    
+    Input:focus {
+        border: solid #5f5f5f;
     }
     
     #methods_container {
@@ -208,10 +322,10 @@ class DataProcessorApp(App[None]):
         return self._config
         
     def on_mount(self) -> None:
-        """Display logo and show main menu on startup"""
+        """Display logo and show file selection screen on startup"""
         console = Console()
         console.print(Panel(LOGO, style="bold blue", expand=False))
-        self.push_screen(MainMenu())
+        self.push_screen(FileSelectionScreen())
 
 def main():
     """Main entry point"""
