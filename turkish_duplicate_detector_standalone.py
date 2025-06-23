@@ -1,6 +1,6 @@
+#!/usr/bin/env python3
 """
-Processor for detecting duplicate and near-duplicate content using MinHash/SimHash
-with Turkish language support
+Standalone Turkish-friendly duplicate detector using MinHash/SimHash
 """
 
 import logging
@@ -25,6 +25,15 @@ try:
     nltk.data.find('corpora/stopwords')
 except LookupError:
     nltk.download('stopwords')
+
+# Try to download Turkish-specific data
+try:
+    nltk.data.find('tokenizers/punkt_tab/turkish')
+except LookupError:
+    try:
+        nltk.download('punkt_tab')
+    except:
+        print("Warning: Turkish-specific tokenizer not available, using default tokenizer")
 
 logger = logging.getLogger(__name__)
 
@@ -124,12 +133,20 @@ class TurkishDuplicateDetector:
         text = self._normalize_turkish_text(text)
         
         # Tokenize into sentences
-        sentences = sent_tokenize(text, language='turkish')
+        try:
+            sentences = sent_tokenize(text, language='turkish')
+        except LookupError:
+            # Fallback to default tokenization if Turkish-specific data is not available
+            sentences = sent_tokenize(text)
         
         tokens = []
         for sentence in sentences:
             # Tokenize words
-            words = word_tokenize(sentence, language='turkish')
+            try:
+                words = word_tokenize(sentence, language='turkish')
+            except LookupError:
+                # Fallback to default word tokenization
+                words = word_tokenize(sentence)
             
             for word in words:
                 # Remove punctuation and numbers
@@ -249,6 +266,7 @@ class TurkishDuplicateDetector:
         Returns:
             pd.DataFrame: Processed DataFrame with duplicate flag
         """
+        df = df.copy()
         df['is_duplicate'] = False
         df['duplicate_group'] = -1
         
@@ -259,7 +277,7 @@ class TurkishDuplicateDetector:
                 
         duplicate_count = df['is_duplicate'].sum()
         if duplicate_count > 0:
-            logger.warning(f"Found {duplicate_count} duplicate texts in {len(duplicate_groups)} groups")
+            print(f"Found {duplicate_count} duplicate texts in {len(duplicate_groups)} groups")
             
         return df
         
@@ -269,7 +287,7 @@ class TurkishDuplicateDetector:
         
         Args:
             df (pd.DataFrame): Input DataFrame
-            duplicate_groups (List[Set[int]]: List of sets containing indices of duplicate texts
+            duplicate_groups (List[Set[int]]): List of sets containing indices of duplicate texts
             
         Returns:
             pd.DataFrame: Processed DataFrame with duplicates removed
@@ -282,7 +300,7 @@ class TurkishDuplicateDetector:
             indices_to_remove.update(group - {first_idx})
             
         df = df.drop(index=list(indices_to_remove))
-        logger.info(f"Removed {len(indices_to_remove)} duplicate texts")
+        print(f"Removed {len(indices_to_remove)} duplicate texts")
         
         return df
         
@@ -297,19 +315,89 @@ class TurkishDuplicateDetector:
         Returns:
             pd.DataFrame: Processed DataFrame with duplicate groups
         """
+        df = df.copy()
         df['duplicate_group'] = -1
         
         for group_idx, group in enumerate(duplicate_groups):
             for idx in group:
                 df.loc[idx, 'duplicate_group'] = group_idx
                 
-        logger.info(f"Grouped {len(duplicate_groups)} sets of duplicate texts")
+        print(f"Grouped {len(duplicate_groups)} sets of duplicate texts")
         
         return df
 
-# Keep the original class for backward compatibility
-class DuplicateDetector(TurkishDuplicateDetector):
-    """
-    Backward compatibility class - now uses Turkish-friendly processing by default
-    """
-    pass 
+def main():
+    """Example usage of Turkish duplicate detector"""
+    
+    # Sample Turkish text data
+    sample_data = {
+        'text': [
+            "Merhaba, nasılsınız? Bugün hava çok güzel.",
+            "Merhaba, nasılsınız? Bugün hava çok güzel.",  # Exact duplicate
+            "Merhaba! Nasılsınız? Bugün hava çok güzel.",  # Near duplicate with punctuation
+            "Merhaba, nasılsınız? Bugün hava çok güzel.",  # Another exact duplicate
+            "Bugün hava çok güzel ve güneşli.",  # Different text
+            "Merhaba, nasılsınız? Bugün hava çok güzel.",  # Another exact duplicate
+            "Bugün hava çok güzel ve güneşli.",  # Duplicate of the different text
+            "İstanbul'da yaşıyorum ve çok mutluyum.",  # Unique text
+            "İstanbul'da yaşıyorum ve çok mutluyum.",  # Duplicate of unique text
+        ]
+    }
+    
+    df = pd.DataFrame(sample_data)
+    
+    print("Original DataFrame:")
+    print(df)
+    print("\n" + "="*50 + "\n")
+    
+    # Configuration for Turkish duplicate detection
+    config = {
+        'text_column': 'text',
+        'similarity_threshold': 0.8,  # Lower threshold for Turkish text
+        'num_perm': 128,
+        'shingle_size': 3,
+        'action': 'mark',  # Mark duplicates
+        'remove_stopwords': True,
+        'normalize_text': True,
+        'min_word_length': 2
+    }
+    
+    # Initialize Turkish duplicate detector
+    detector = TurkishDuplicateDetector(config)
+    
+    # Process the DataFrame
+    result_df = detector.process(df)
+    
+    print("Processed DataFrame with duplicate detection:")
+    print(result_df)
+    print("\n" + "="*50 + "\n")
+    
+    # Show duplicate groups
+    duplicate_groups = result_df[result_df['duplicate_group'] >= 0].groupby('duplicate_group')
+    
+    print("Duplicate Groups Found:")
+    for group_id, group in duplicate_groups:
+        print(f"\nGroup {group_id}:")
+        for idx, row in group.iterrows():
+            print(f"  Row {idx}: {row['text']}")
+    
+    print("\n" + "="*50 + "\n")
+    
+    # Example with removal action
+    print("Example with removal action:")
+    config_remove = config.copy()
+    config_remove['action'] = 'remove'
+    
+    detector_remove = TurkishDuplicateDetector(config_remove)
+    result_remove = detector_remove.process(df)
+    
+    print(f"Original rows: {len(df)}")
+    print(f"After removing duplicates: {len(result_remove)}")
+    print(f"Removed {len(df) - len(result_remove)} duplicate rows")
+    
+    print("\nRemaining unique texts:")
+    for idx, row in result_remove.iterrows():
+        print(f"  {row['text']}")
+
+if __name__ == "__main__":
+    main() 

@@ -23,7 +23,8 @@ from ..processors import (
     CategoriesProcessor,
     TextValidationProcessor,
     RelationshipsProcessor,
-    EntryRulesProcessor
+    EntryRulesProcessor,
+    TurkishDuplicateDetector
 )
 from ..processors.xlsx_processor import XLSXProcessor
 from ..utils.metrics import MetricsCollector
@@ -32,6 +33,25 @@ from ..utils.legal_domain_filter import LegalDomainFilter
 from ..exceptions import ValidationError, ModelLoadError, InferenceError
 
 logger = logging.getLogger(__name__)
+
+def get_processor_registry(config):
+    """
+    Dynamically import and instantiate all processors, including TurkishDuplicateDetector.
+    This avoids circular imports by only importing when needed.
+    """
+    return {
+        'missing_values': MissingValuesProcessor(config),
+        'mandatory_fields': MandatoryFieldsProcessor(config),
+        'numerical_formats': NumericalFormatsProcessor(config),
+        'outdated_data': OutdatedDataProcessor(config),
+        'external_validation': ExternalValidationProcessor(config),
+        'uniqueness': UniquenessProcessor(config),
+        'categories': CategoriesProcessor(config),
+        'text_validation': TextValidationProcessor(config),
+        'relationships': RelationshipsProcessor(config),
+        'entry_rules': EntryRulesProcessor(config),
+        'turkish_duplicate_detector': TurkishDuplicateDetector(config)
+    }
 
 class DataQualityFramework:
     """
@@ -62,19 +82,8 @@ class DataQualityFramework:
         self.validation_results = {}
         self.metrics = MetricsCollector()
         
-        # Initialize processors
-        self.processors = {
-            'missing_values': MissingValuesProcessor(config),
-            'mandatory_fields': MandatoryFieldsProcessor(config),
-            'numerical_formats': NumericalFormatsProcessor(config),
-            'outdated_data': OutdatedDataProcessor(config),
-            'external_validation': ExternalValidationProcessor(config),
-            'uniqueness': UniquenessProcessor(config),
-            'categories': CategoriesProcessor(config),
-            'text_validation': TextValidationProcessor(config),
-            'relationships': RelationshipsProcessor(config),
-            'entry_rules': EntryRulesProcessor(config)
-        }
+        # Initialize processors using the helper function
+        self.processors = get_processor_registry(config)
         
         self.xlsx_processor = XLSXProcessor(config)
         

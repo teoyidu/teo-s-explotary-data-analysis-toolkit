@@ -15,7 +15,7 @@ from .entry_rules import EntryRulesProcessor
 from .html_cleaner import HTMLCleanerProcessor
 from .hadoop_cleaner import HadoopCleanerProcessor
 from .boilerplate_cleaner import BoilerplateCleanerProcessor
-from .duplicate_detector import DuplicateDetector
+from .duplicate_detector import DuplicateDetector, TurkishDuplicateDetector
 
 __all__ = [
     'MissingValuesProcessor',
@@ -31,5 +31,6 @@ __all__ = [
     'HTMLCleanerProcessor',
     'HadoopCleanerProcessor',
     'BoilerplateCleanerProcessor',
-    'DuplicateDetector'
+    'DuplicateDetector',
+    'TurkishDuplicateDetector'
 ] 

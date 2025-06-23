@@ -137,7 +137,8 @@ class MainMenu(Screen):
         "f12_clean_hadoop_tags",
         "f13_clean_boilerplate",
         "f14_legal_domain_filter",
-        "f15_legal_domain_classify"
+        "f15_legal_domain_classify",
+        "turkish_duplicate_detector"  # Turkish-friendly duplicate detection
     ]
     
     def __init__(self, selected_file: str):
@@ -246,7 +247,8 @@ class ProcessingScreen(Screen):
                 'f12_clean_hadoop_tags': 'hadoop_cleaning',
                 'f13_clean_boilerplate': 'boilerplate_cleaning',
                 'f14_legal_domain_filter': 'legal_domain_filter',
-                'f15_legal_domain_classify': 'legal_domain_classify'
+                'f15_legal_domain_classify': 'legal_domain_classify',
+                'turkish_duplicate_detector': 'turkish_duplicate_detector'
             }
             
             for i, method in enumerate(self.selected_methods):
