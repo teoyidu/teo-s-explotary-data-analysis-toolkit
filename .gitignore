@@ -15,3 +15,6 @@ model_cache
 test_data_1.parquet
 test_data_1_bge_m3_processed.parquet
 test_data_1_semhash_processed.parquet
+synthetic_data_after_cleaning.parquet
+synthetic_data_before_cleaning.parquet
+test_data_1_cleaned.parquet

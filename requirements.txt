@@ -49,4 +49,7 @@ types-beautifulsoup4>=4.12.0
 sentencepiece>=0.1.99
 nltk>=3.8.1
 datasketch>=1.5.9
-semhash>=0.3.0 
+semhash>=0.3.0
+
+# Turkish-specific dependencies
+FlagEmbedding>=1.2.0  # For BGE-M3 Turkish embeddings 
