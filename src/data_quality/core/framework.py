@@ -13,19 +13,7 @@ from pyspark.sql import SparkSession, DataFrame
 import pandas as pd
 
 from .exceptions import ConfigurationError, ProcessingError
-from ..processors import (
-    MissingValuesProcessor,
-    MandatoryFieldsProcessor,
-    NumericalFormatsProcessor,
-    OutdatedDataProcessor,
-    ExternalValidationProcessor,
-    UniquenessProcessor,
-    CategoriesProcessor,
-    TextValidationProcessor,
-    RelationshipsProcessor,
-    EntryRulesProcessor,
-    TurkishDuplicateDetector
-)
+from ..processors import get_processor
 from ..processors.xlsx_processor import XLSXProcessor
 from ..utils.metrics import MetricsCollector
 from ..utils.config_validator import ConfigurationValidator
@@ -40,17 +28,17 @@ def get_processor_registry(config):
     This avoids circular imports by only importing when needed.
     """
     return {
-        'missing_values': MissingValuesProcessor(config),
-        'mandatory_fields': MandatoryFieldsProcessor(config),
-        'numerical_formats': NumericalFormatsProcessor(config),
-        'outdated_data': OutdatedDataProcessor(config),
-        'external_validation': ExternalValidationProcessor(config),
-        'uniqueness': UniquenessProcessor(config),
-        'categories': CategoriesProcessor(config),
-        'text_validation': TextValidationProcessor(config),
-        'relationships': RelationshipsProcessor(config),
-        'entry_rules': EntryRulesProcessor(config),
-        'turkish_duplicate_detector': TurkishDuplicateDetector(config)
+        'missing_values': get_processor('MissingValuesProcessor')(config),
+        'mandatory_fields': get_processor('MandatoryFieldsProcessor')(config),
+        'numerical_formats': get_processor('NumericalFormatsProcessor')(config),
+        'outdated_data': get_processor('OutdatedDataProcessor')(config),
+        'external_validation': get_processor('ExternalValidationProcessor')(config),
+        'uniqueness': get_processor('UniquenessProcessor')(config),
+        'categories': get_processor('CategoriesProcessor')(config),
+        'text_validation': get_processor('TextValidationProcessor')(config),
+        'relationships': get_processor('RelationshipsProcessor')(config),
+        'entry_rules': get_processor('EntryRulesProcessor')(config),
+        'turkish_duplicate_detector': get_processor('TurkishDuplicateDetector')(config)
     }
 
 class DataQualityFramework:

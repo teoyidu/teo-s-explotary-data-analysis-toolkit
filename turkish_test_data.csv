@@ -1,0 +1,50 @@
+text,category,expected_duplicates
+"Merhaba, nasılsınız? Bugün hava çok güzel.","basic",3
+"Merhaba, nasılsınız? Bugün hava çok güzel.","basic",3
+"Merhaba, nasılsınız? Bugün hava çok güzel.","basic",3
+"Merhaba! Nasılsınız? Bugün hava çok güzel.","basic",3
+"Merhaba, nasılsınız? Bugün hava çok güzel!","basic",3
+"Bugün hava çok güzel ve güneşli.","basic",2
+"Bugün hava çok güzel ve güneşli.","basic",2
+"Hava bugün çok güzel, güneşli bir gün.","basic",2
+"İstanbul'da yaşıyorum ve çok mutluyum.","basic",2
+"İstanbul'da yaşıyorum ve çok mutluyum.","basic",2
+"Bu sözleşme taraflar arasında imzalanmıştır.","legal",3
+"Bu sözleşme taraflar arasında imzalanmıştır.","legal",3
+"Bu sözleşme taraflar arasında imzalanmıştır.","legal",3
+"Bu sözleşme, taraflar arasında imzalanmıştır.","legal",3
+"Sözleşme taraflar arasında imzalanmıştır.","legal",3
+"Taraflar arasında bu sözleşme imzalanmıştır.","legal",3
+"Mahkeme kararı kesinleşmiştir.","legal",3
+"Mahkeme kararı kesinleşmiştir.","legal",3
+"Mahkeme kararı kesinleşmiştir.","legal",3
+"Yargıtay kararı kesinleşmiştir.","legal",3
+"Ekonomi bakanı yeni önlemler açıkladı.","news",3
+"Ekonomi bakanı yeni önlemler açıkladı.","news",3
+"Ekonomi bakanı yeni önlemler açıkladı.","news",3
+"Ekonomi Bakanı yeni önlemler açıkladı.","news",3
+"Bakan yeni ekonomik önlemler açıkladı.","news",3
+"Yeni ekonomik önlemler bakan tarafından açıklandı.","news",3
+"İstanbul'da trafik yoğunluğu arttı.","news",3
+"İstanbul'da trafik yoğunluğu arttı.","news",3
+"İstanbul'da trafik yoğunluğu arttı.","news",3
+"Trafik yoğunluğu İstanbul'da arttı.","news",3
+"Ankara'da çalışıyorum ve memnunum.","unique",1
+"İzmir'de tatil yapıyorum.","unique",1
+"Bursa'da üniversite okuyorum.","unique",1
+"Antalya'da turizm sektöründe çalışıyorum.","unique",1
+"Konya'da tarihi yerleri gezdim.","unique",1
+"Trabzon'da fındık üretimi yapılıyor.","unique",1
+"Gaziantep'te yemek kültürü çok zengin.","unique",1
+"Kayseri'de pastırma meşhurdur.","unique",1
+"Erzurum'da kış sporları yapılır.","unique",1
+"Bu çok uzun bir metin örneğidir. İçinde birçok cümle bulunmaktadır. Türkçe karakterler de kullanılmıştır.","long",2
+"Bu çok uzun bir metin örneğidir. İçinde birçok cümle bulunmaktadır. Türkçe karakterler de kullanılmıştır.","long",2
+"Bu çok uzun bir metin örneğidir. İçinde birçok cümle bulunmaktadır. Türkçe karakterler de kullanılmıştır.","long",2
+"Bu çok uzun bir metin örneğidir. İçinde birçok cümle bulunmaktadır. Türkçe karakterler de kullanılmıştır.","long",2
+"Bu çok uzun bir metin örneğidir. İçinde birçok cümle bulunmaktadır. Türkçe karakterler de kullanılmıştır.","long",2
+"Bu çok uzun bir metin örneğidir. İçinde birçok cümle bulunmaktadır. Türkçe karakterler de kullanılmıştır.","long",2
+"Bu çok uzun bir metin örneğidir. İçinde birçok cümle bulunmaktadır. Türkçe karakterler de kullanılmıştır.","long",2
+"Bu çok uzun bir metin örneğidir. İçinde birçok cümle bulunmaktadır. Türkçe karakterler de kullanılmıştır.","long",2
+"Bu çok uzun bir metin örneğidir. İçinde birçok cümle bulunmaktadır. Türkçe karakterler de kullanılmıştır.","long",2
+"Bu çok uzun bir metin örneğidir. İçinde birçok cümle bulunmaktadır. Türkçe karakterler de kullanılmıştır.","long",2 

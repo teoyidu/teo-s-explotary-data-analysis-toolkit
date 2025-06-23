@@ -12,3 +12,6 @@ data_quality.log
 checkpoints
 .vscode
 model_cache
+test_data_1.parquet
+test_data_1_bge_m3_processed.parquet
+test_data_1_semhash_processed.parquet

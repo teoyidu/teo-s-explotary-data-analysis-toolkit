@@ -459,7 +459,8 @@ class DataQualityFramework:
     Example usage:
     ```python
     from pyspark.sql import SparkSession
-    from data_quality_framework import DataQualityFramework, create_sample_config
+    from src.data_quality.core.framework import DataQualityFramework
+    from src.data_quality.utils.config_validator import create_sample_config
     
     # Initialize Spark session
     spark = SparkSession.builder.appName("Data Quality Framework").getOrCreate()
