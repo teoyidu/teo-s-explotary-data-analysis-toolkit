@@ -135,7 +135,9 @@ class MainMenu(Screen):
         "f10_implement_entry_rules",
         "f11_clean_html_tags",
         "f12_clean_hadoop_tags",
-        "f13_clean_boilerplate"
+        "f13_clean_boilerplate",
+        "f14_legal_domain_filter",
+        "f15_legal_domain_classify"
     ]
     
     def __init__(self, selected_file: str):
@@ -242,7 +244,9 @@ class ProcessingScreen(Screen):
                 'f10_implement_entry_rules': 'entry_rules',
                 'f11_clean_html_tags': 'html_cleaning',
                 'f12_clean_hadoop_tags': 'hadoop_cleaning',
-                'f13_clean_boilerplate': 'boilerplate_cleaning'
+                'f13_clean_boilerplate': 'boilerplate_cleaning',
+                'f14_legal_domain_filter': 'legal_domain_filter',
+                'f15_legal_domain_classify': 'legal_domain_classify'
             }
             
             for i, method in enumerate(self.selected_methods):

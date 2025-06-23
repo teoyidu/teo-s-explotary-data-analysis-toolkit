@@ -1,6 +1,26 @@
 # Teo's EDA Emporium
 
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
+[![Spark Version](https://img.shields.io/badge/spark-3.4%2B-orange)](https://spark.apache.org/downloads.html)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen)](docs/)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)]()
+
 A comprehensive, production-ready data quality framework for processing Parquet files using Apache Spark. This framework implements advanced data quality checks with batch processing capabilities, error handling, and configurable checkpointing.
+
+## Table of Contents
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Advanced Usage](#advanced-usage)
+- [Performance Tuning](#performance-tuning)
+- [Error Handling](#error-handling)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
+- [Roadmap](#roadmap)
 
 ## Features
 
@@ -9,37 +29,102 @@ A comprehensive, production-ready data quality framework for processing Parquet 
 The framework implements sophisticated data quality processors:
 
 1. **BoilerplateCleanerProcessor**
-   - TF-IDF based duplicate detection
-   - Context-aware cleaning methods
-   - Smart header/footer removal
-   - Template matching capabilities
-   - Configurable similarity thresholds
+   - TF-IDF based duplicate detection with configurable thresholds
+   - Context-aware cleaning methods for different document types
+   - Smart header/footer removal using pattern recognition
+   - Template matching capabilities with customizable templates
+   - Configurable similarity thresholds (default: 0.8)
+   - Support for multiple languages and character encodings
+   - Memory-efficient processing for large documents
 
 2. **HadoopCleanerProcessor**
-   - Metadata extraction capabilities
+   - Metadata extraction capabilities from Hadoop ecosystem
    - Improved tag cleaning using predefined patterns
-   - Structured data preservation
-   - Custom pattern support
-   - Metadata transformation options
+   - Structured data preservation with schema validation
+   - Custom pattern support for specialized use cases
+   - Metadata transformation options with field mapping
+   - Support for various Hadoop file formats
+   - Integration with Hadoop security features
 
 3. **HTMLCleanerProcessor**
-   - Custom tag replacements
-   - Attribute preservation
-   - Enhanced entity handling
-   - Whitelist-based tag filtering
-   - Custom transformation support
+   - Custom tag replacements with whitelist/blacklist
+   - Attribute preservation for critical HTML elements
+   - Enhanced entity handling with custom entity maps
+   - Whitelist-based tag filtering with configurable rules
+   - Custom transformation support for specific HTML structures
+   - Support for HTML5 and legacy HTML
+   - XSS protection and sanitization
 
 4. **Core Data Quality Processors**
-   - MissingValuesProcessor: Advanced null/missing value handling
-   - MandatoryFieldsProcessor: Required field validation
-   - NumericalFormatsProcessor: Data type standardization
-   - OutdatedDataProcessor: Temporal data filtering
-   - ExternalValidationProcessor: Cross-reference validation
-   - UniquenessProcessor: Duplicate detection and removal
-   - CategoriesProcessor: Categorical data standardization
-   - TextValidationProcessor: Pattern-based text validation
-   - RelationshipsProcessor: Data relationship validation
-   - EntryRulesProcessor: Business rule enforcement
+   - **MissingValuesProcessor**
+     - Advanced null/missing value detection
+     - Multiple imputation strategies
+     - Statistical analysis of missing patterns
+     - Custom handling for different data types
+     - Threshold-based alerts and reporting
+   
+   - **MandatoryFieldsProcessor**
+     - Required field validation with custom rules
+     - Cross-field dependency checking
+     - Conditional mandatory field support
+     - Detailed validation reporting
+     - Custom error messages and handling
+   
+   - **NumericalFormatsProcessor**
+     - Data type standardization
+     - Format validation and conversion
+     - Range checking and outlier detection
+     - Unit conversion support
+     - Precision and scale management
+   
+   - **OutdatedDataProcessor**
+     - Temporal data filtering
+     - Age-based validation
+     - Timezone handling
+     - Custom date/time formats
+     - Relative time calculations
+   
+   - **ExternalValidationProcessor**
+     - Cross-reference validation
+     - External API integration
+     - Cache management
+     - Rate limiting
+     - Error handling and retries
+   
+   - **UniquenessProcessor**
+     - Duplicate detection and removal
+     - Fuzzy matching support
+     - Composite key validation
+     - Performance optimization
+     - Custom uniqueness rules
+   
+   - **CategoriesProcessor**
+     - Categorical data standardization
+     - Value mapping and normalization
+     - Hierarchical category support
+     - Custom category rules
+     - Validation reporting
+   
+   - **TextValidationProcessor**
+     - Pattern-based text validation
+     - Regular expression support
+     - Language detection
+     - Character encoding handling
+     - Custom validation rules
+   
+   - **RelationshipsProcessor**
+     - Data relationship validation
+     - Foreign key checking
+     - Referential integrity
+     - Custom relationship rules
+     - Performance optimization
+   
+   - **EntryRulesProcessor**
+     - Business rule enforcement
+     - Custom rule engine
+     - Rule dependency management
+     - Validation reporting
+     - Error handling
 
 ### 📊 Metrics & Monitoring
 
@@ -47,61 +132,221 @@ The framework includes comprehensive metrics collection:
 
 1. **Performance Metrics**
    - Detailed operation timing and statistics
-   - Memory usage tracking (RSS, VMS, Shared)
+     - Per-operation timing
+     - Cumulative timing
+     - Statistical analysis
+   - Memory usage tracking
+     - RSS (Resident Set Size)
+     - VMS (Virtual Memory Size)
+     - Shared memory
+     - Heap usage
    - CPU utilization monitoring
+     - Per-core usage
+     - Overall utilization
+     - Peak usage tracking
    - I/O operation counters
+     - Read/write operations
+     - Network I/O
+     - Disk I/O
    - Garbage collection statistics
+     - Collection frequency
+     - Memory reclaimed
+     - Pause times
    - Operation success/failure rates
+     - Per-operation tracking
+     - Trend analysis
+     - Alert thresholds
    - Historical metrics tracking
+     - Time-series data
+     - Trend analysis
+     - Performance baselines
 
 2. **Resource Monitoring**
    - Real-time memory usage tracking
+     - Heap monitoring
+     - Non-heap monitoring
+     - GC monitoring
    - CPU utilization monitoring
+     - Per-core tracking
+     - Process-level monitoring
+     - System-level monitoring
    - I/O operations tracking
+     - Disk I/O
+     - Network I/O
+     - File operations
    - Thread count monitoring
+     - Active threads
+     - Blocked threads
+     - Thread pool stats
    - Open file handles tracking
+     - File descriptor limits
+     - Handle leaks detection
+     - Resource cleanup
    - Network connection monitoring
+     - Active connections
+     - Connection pools
+     - Network errors
    - System resource peak tracking
+     - Historical peaks
+     - Resource trends
+     - Alert thresholds
 
 3. **Validation Metrics**
    - Data quality scores
+     - Per-field scores
+     - Overall quality score
+     - Trend analysis
    - Error rates
+     - Per-operation errors
+     - Error categorization
+     - Error trends
    - Processing success rates
+     - Batch success rates
+     - Record success rates
+     - Error recovery rates
    - Batch statistics
+     - Batch size metrics
+     - Processing time
+     - Resource usage
    - Operation duration statistics
+     - Min/max/avg durations
+     - Percentile analysis
+     - Performance trends
    - Memory usage patterns
+     - Usage trends
+     - Peak patterns
+     - Leak detection
    - CPU usage patterns
+     - Usage trends
+     - Bottleneck detection
+     - Optimization opportunities
 
 4. **Advanced Logging**
    - Structured JSON logging
+     - Standardized format
+     - Custom fields
+     - Log levels
    - Detailed error context
+     - Stack traces
+     - Error codes
+     - Context data
    - System state snapshots
+     - Resource usage
+     - Configuration state
+     - Operation state
    - Performance summaries
+     - Operation metrics
+     - Resource usage
+     - Error statistics
    - Batch processing metrics
+     - Batch statistics
+     - Processing times
+     - Success rates
    - Resource utilization history
+     - Historical data
+     - Trend analysis
+     - Capacity planning
    - Operation success/failure tracking
+     - Success rates
+     - Error patterns
+     - Recovery statistics
 
 ### 🚀 Performance & Scalability
 
-- **Batch Processing**: Efficiently handle large datasets by processing in configurable batches
-- **Concurrent Processing**: Support for parallel batch execution
-- **Memory Optimization**: Intelligent caching and memory management
-- **Adaptive Query Execution**: Leverages Spark's adaptive query optimization
-- **Checkpointing**: Resume processing from failure points
+- **Batch Processing**
+  - Configurable batch sizes
+  - Dynamic batch optimization
+  - Memory-aware batching
+  - Progress tracking
+  - Checkpoint management
+
+- **Concurrent Processing**
+  - Parallel batch execution
+  - Resource-aware scheduling
+  - Load balancing
+  - Thread pool management
+  - Task prioritization
+
+- **Memory Optimization**
+  - Intelligent caching
+  - Memory management
+  - Garbage collection tuning
+  - Resource cleanup
+  - Memory leak prevention
+
+- **Adaptive Query Execution**
+  - Spark optimization
+  - Query planning
+  - Execution optimization
+  - Resource allocation
+  - Performance tuning
+
+- **Checkpointing**
+  - Resume from failures
+  - State management
+  - Recovery points
+  - Progress tracking
+  - Data consistency
 
 ### ⚙️ Configuration & Management
 
-- **Flexible Configuration**: JSON/YAML configuration files
-- **Environment-Specific Configs**: Support for dev/test/prod environments
-- **Domain-Specific Templates**: Pre-built configurations for e-commerce, finance, healthcare
-- **Validation**: Built-in configuration validation
+- **Flexible Configuration**
+  - JSON/YAML support
+  - Environment variables
+  - Command-line options
+  - Default values
+  - Validation rules
+
+- **Environment-Specific Configs**
+  - Development
+  - Testing
+  - Production
+  - Staging
+  - Custom environments
+
+- **Domain-Specific Templates**
+  - E-commerce
+  - Finance
+  - Healthcare
+  - Manufacturing
+  - Custom domains
+
+- **Validation**
+  - Schema validation
+  - Value validation
+  - Dependency checking
+  - Error reporting
+  - Auto-correction
 
 ### 🔧 Enterprise Features
 
-- **Comprehensive Logging**: Structured logging with multiple levels
-- **Error Handling**: Robust error handling with detailed error reporting
-- **Monitoring**: Processing statistics and performance metrics
-- **Recovery**: Checkpoint-based recovery mechanisms
+- **Comprehensive Logging**
+  - Multiple log levels
+  - Structured format
+  - Log rotation
+  - Log aggregation
+  - Log analysis
+
+- **Error Handling**
+  - Detailed reporting
+  - Error categorization
+  - Recovery strategies
+  - Alert mechanisms
+  - Error tracking
+
+- **Monitoring**
+  - Real-time metrics
+  - Performance tracking
+  - Resource monitoring
+  - Alert thresholds
+  - Dashboard integration
+
+- **Recovery**
+  - Checkpoint-based recovery
+  - State management
+  - Data consistency
+  - Error recovery
+  - Progress tracking
 
 ## Project Structure
 
@@ -109,29 +354,13 @@ The framework includes comprehensive metrics collection:
 ├── src/
 │   ├── data_quality/
 │   │   ├── processors/         # Data quality processors
-│   │   │   ├── boilerplate_cleaner.py
-│   │   │   ├── hadoop_cleaner.py
-│   │   │   ├── html_cleaner.py
-│   │   │   ├── missing_values.py
-│   │   │   ├── mandatory_fields.py
-│   │   │   ├── numerical_formats.py
-│   │   │   ├── outdated_data.py
-│   │   │   ├── external_validation.py
-│   │   │   ├── uniqueness.py
-│   │   │   ├── categories.py
-│   │   │   ├── text_validation.py
-│   │   │   ├── relationships.py
-│   │   │   ├── entry_rules.py
-│   │   │   └── xlsx_processor.py
 │   │   ├── core/              # Core framework components
-│   │   │   ├── framework.py   # Main framework implementation
-│   │   │   └── exceptions.py  # Custom exceptions
 │   │   ├── utils/             # Utility functions
-│   │   │   ├── metrics.py     # Metrics collection
-│   │   │   └── config_validator.py
 │   │   ├── config/            # Configuration templates
 │   │   └── tests/             # Test suite
+│   ├── legal_domain_filter.py # Legal domain classification
 │   ├── logging_manager.py     # Logging configuration
+│   ├── performance_monitor.py # Performance monitoring
 │   └── logging_config.py      # Logging settings
 ├── main.py                    # Main entry point
 ├── data_quality_framework.py  # Core framework implementation
@@ -140,7 +369,9 @@ The framework includes comprehensive metrics collection:
 ├── cli_processor.py           # Command-line interface
 ├── example_usage.py           # Usage examples
 ├── setup.py                   # Package setup
-└── requirements.txt           # Dependencies
+├── pyproject.toml            # Project metadata
+├── requirements.txt          # Dependencies
+└── install_dev.sh            # Development setup script
 ```
 
 ## Installation
@@ -150,11 +381,33 @@ The framework includes comprehensive metrics collection:
 - Python 3.8+
 - Apache Spark 3.4+
 - Java 8 or 11
+- 8GB+ RAM recommended
+- 4+ CPU cores recommended
+- 20GB+ free disk space
 
-### Install Dependencies
+### Quick Installation
 
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd spark-truba
+
+# Install development dependencies
+./install_dev.sh
+```
+
+### Manual Installation
+
+```bash
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Install in development mode
+pip install -e .
 ```
 
 ### For Distributed Deployment
@@ -163,6 +416,11 @@ pip install -r requirements.txt
 # Install on all cluster nodes
 pip install pyspark pandas pyarrow PyYAML scikit-learn beautifulsoup4 psutil \
     fastparquet python-snappy brotli lz4 zstandard matplotlib seaborn plotly
+
+# Configure Spark environment
+export SPARK_HOME=/path/to/spark
+export PYTHONPATH=$SPARK_HOME/python:$PYTHONPATH
+export PATH=$SPARK_HOME/bin:$PATH
 ```
 
 ## Quick Start
@@ -393,29 +651,81 @@ spark.conf.set("spark.sql.shuffle.partitions", "200")
 
 ### Batch Size Recommendations
 
-| Dataset Size | Recommended Batch Size | Concurrent Batches |
-|-------------|----------------------|-------------------|
-| < 100K rows | Process all at once | 1 |
-| 100K - 1M rows | 100K | 2 |
-| 1M - 10M rows | 500K | 3 |
-| > 10M rows | 1M | 4 |
+| Dataset Size | Recommended Batch Size | Concurrent Batches | Memory Usage | Processing Time |
+|-------------|----------------------|-------------------|--------------|----------------|
+| < 100K rows | Process all at once | 1 | Low | Fast |
+| 100K - 1M rows | 100K | 2 | Medium | Medium |
+| 1M - 10M rows | 500K | 3 | High | Slow |
+| > 10M rows | 1M | 4 | Very High | Very Slow |
 
 ## Error Handling
 
 ### Types of Errors Handled
 
-1. **File I/O Errors**: Missing files, permission issues
-2. **Schema Validation Errors**: Unexpected data types, missing columns
-3. **Data Quality Errors**: Constraint violations, invalid data
-4. **Processing Errors**: Memory issues, timeout errors
-5. **Configuration Errors**: Invalid settings, missing parameters
+1. **File I/O Errors**
+   - Missing files
+   - Permission issues
+   - Disk space errors
+   - Network errors
+   - File corruption
+
+2. **Schema Validation Errors**
+   - Unexpected data types
+   - Missing columns
+   - Invalid formats
+   - Constraint violations
+   - Schema evolution
+
+3. **Data Quality Errors**
+   - Constraint violations
+   - Invalid data
+   - Format errors
+   - Range violations
+   - Business rule violations
+
+4. **Processing Errors**
+   - Memory issues
+   - Timeout errors
+   - Resource exhaustion
+   - Deadlocks
+   - Race conditions
+
+5. **Configuration Errors**
+   - Invalid settings
+   - Missing parameters
+   - Type mismatches
+   - Dependency errors
+   - Environment issues
 
 ### Error Recovery
 
 - Automatic retry for transient errors
-- Checkpoint-based recovery for batch processing
-- Detailed error logging and reporting
-- Graceful degradation for non-critical errors
+  - Configurable retry count
+  - Exponential backoff
+  - Error classification
+  - Success criteria
+  - Failure handling
+
+- Checkpoint-based recovery
+  - State management
+  - Progress tracking
+  - Data consistency
+  - Recovery points
+  - Validation
+
+- Detailed error logging
+  - Error context
+  - Stack traces
+  - System state
+  - User context
+  - Recovery attempts
+
+- Graceful degradation
+  - Fallback options
+  - Partial results
+  - Error reporting
+  - User notification
+  - Recovery options
 
 ## Contributing
 
@@ -424,10 +734,10 @@ spark.conf.set("spark.sql.shuffle.partitions", "200")
 ```bash
 # Clone repository
 git clone <repository-url>
-cd pyspark-data-quality-framework
+cd spark-truba
 
-# Install dependencies
-pip install -r requirements.txt
+# Install development dependencies
+./install_dev.sh
 
 # Run tests
 python -m pytest tests/
@@ -440,9 +750,32 @@ python main.py sample_data.parquet --config ecommerce_data_quality_config.json
 ### Code Style
 
 - Follow PEP 8 guidelines
-- Use type hints for function parameters and return values
-- Include docstrings for all public methods
-- Add logging for important operations
+  - Line length limits
+  - Naming conventions
+  - Import ordering
+  - Documentation
+  - Whitespace
+
+- Use type hints
+  - Function parameters
+  - Return values
+  - Class attributes
+  - Generic types
+  - Optional types
+
+- Include docstrings
+  - Function purpose
+  - Parameters
+  - Return values
+  - Examples
+  - Exceptions
+
+- Add logging
+  - Operation tracking
+  - Error reporting
+  - Performance monitoring
+  - Debug information
+  - Audit trails
 
 ## License
 
@@ -453,30 +786,129 @@ MIT License - see LICENSE file for details
 For questions, issues, or contributions:
 
 1. Check the documentation
+   - User guide
+   - API reference
+   - Examples
+   - Troubleshooting
+   - FAQ
+
 2. Review existing issues
-3. Create a new issue with detailed information
+   - Bug reports
+   - Feature requests
+   - Known issues
+   - Workarounds
+   - Solutions
+
+3. Create a new issue
+   - Problem description
+   - Steps to reproduce
+   - Expected behavior
+   - Actual behavior
+   - Environment details
+
 4. Follow the contributing guidelines
+   - Code style
+   - Testing
+   - Documentation
+   - Review process
+   - Release process
 
 ## Roadmap
 
 ### Version 2.0 Features
 
 - [ ] Real-time streaming support
-- [ ] MLlib integration for anomaly detection
+  - Kafka integration
+  - Stream processing
+  - Real-time validation
+  - Stream monitoring
+  - Error handling
+
+- [ ] MLlib integration
+  - Anomaly detection
+  - Pattern recognition
+  - Predictive analytics
+  - Model training
+  - Model serving
+
 - [ ] Web-based configuration UI
+  - Visual configuration
+  - Real-time validation
+  - Template management
+  - User management
+  - Access control
+
 - [ ] Integration with data catalogs
+  - Metadata management
+  - Schema registry
+  - Data lineage
+  - Quality metrics
+  - Access control
+
 - [ ] Advanced visualization dashboards
+  - Real-time metrics
+  - Performance monitoring
+  - Quality scores
+  - Error tracking
+  - Resource usage
+
 - [ ] Custom validation rule engine
-- [ ] Multi-format support (JSON, CSV, Avro)
-- [ ] Cloud storage optimizations (S3, GCS, Azure)
+  - Rule definition
+  - Rule execution
+  - Rule management
+  - Rule testing
+  - Rule deployment
+
+- [ ] Multi-format support
+  - JSON
+  - CSV
+  - Avro
+  - XML
+  - Custom formats
+
+- [ ] Cloud storage optimizations
+  - S3
+  - GCS
+  - Azure
+  - Cloud monitoring
+  - Cost optimization
 
 ### Performance Improvements
 
 - [ ] Columnar processing optimizations
+  - Vectorized operations
+  - Memory efficiency
+  - Cache optimization
+  - Compression
+  - Partitioning
+
 - [ ] Delta Lake integration
+  - ACID transactions
+  - Schema evolution
+  - Time travel
+  - Upserts
+  - Deletes
+
 - [ ] Intelligent sampling strategies
+  - Adaptive sampling
+  - Stratified sampling
+  - Random sampling
+  - Systematic sampling
+  - Cluster sampling
+
 - [ ] Predictive batch sizing
-- [ ] Advanced caching strategies 
+  - Resource prediction
+  - Load balancing
+  - Dynamic adjustment
+  - Performance optimization
+  - Cost optimization
+
+- [ ] Advanced caching strategies
+  - Multi-level cache
+  - Cache invalidation
+  - Cache persistence
+  - Cache statistics
+  - Cache optimization
 
 # Legal Domain Filtering
 
